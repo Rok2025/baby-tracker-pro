@@ -4,15 +4,17 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { LayoutDashboard, History, Settings } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-const navItems = [
-    { name: "Today", href: "/", icon: LayoutDashboard },
-    { name: "History", href: "/history", icon: History },
-    { name: "Settings", href: "/settings", icon: Settings },
-]
+import { useLanguage } from "@/components/LanguageProvider"
 
 export function MobileNav() {
     const pathname = usePathname()
+    const { t } = useLanguage()
+
+    const navItems = [
+        { name: t("app.dashboard_short"), href: "/", icon: LayoutDashboard },
+        { name: t("app.history"), href: "/history", icon: History },
+        { name: t("app.settings"), href: "/settings", icon: Settings },
+    ]
 
     return (
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-lg border-t z-50 px-6 py-3 flex justify-between items-center shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">

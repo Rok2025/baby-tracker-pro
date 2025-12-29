@@ -8,19 +8,21 @@ import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import { Settings as SettingsIcon, Save } from "lucide-react"
+import { useLanguage } from "@/components/LanguageProvider"
 
 export default function SettingsPage() {
     const [milkTarget, setMilkTarget] = useState(800)
-    const [sleepTarget, setSleepTarget] = useState(12)
+    const [sleepTarget, setSleepTarget] = useState(10)
     const [loading, setLoading] = useState(false)
+    const { t } = useLanguage()
 
     useEffect(() => {
         async function fetchConfig() {
             const { data, error } = await supabase.from("user_config").select("*")
             if (data) {
                 data.forEach(item => {
-                    if (item.key === "target_milk_ml") setMilkTarget(item.value)
-                    if (item.key === "target_sleep_hours") setSleepTarget(item.value)
+                    if (item.key === "target_milk_ml") setMilkTarget(parseFloat(item.value))
+                    if (item.key === "target_sleep_hours") setSleepTarget(parseFloat(item.value))
                 })
             }
         }
@@ -31,9 +33,9 @@ export default function SettingsPage() {
         setLoading(true)
         try {
             await supabase.from("user_config").upsert([
-                { key: "target_milk_ml", value: milkTarget },
-                { key: "target_sleep_hours", value: sleepTarget }
-            ])
+                { key: "target_milk_ml", value: milkTarget.toString() },
+                { key: "target_sleep_hours", value: sleepTarget.toString() }
+            ], { onConflict: "key" })
             toast.success("Settings saved successfully!")
         } catch (err: any) {
             toast.error("Failed to save settings")
@@ -49,18 +51,18 @@ export default function SettingsPage() {
                     <SettingsIcon className="w-8 h-8 text-primary" />
                 </div>
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
-                    <p className="text-muted-foreground">Configure your baby&apos;s daily standards.</p>
+                    <h2 className="text-3xl font-bold tracking-tight">{t("settings.title")}</h2>
+                    <p className="text-muted-foreground">{t("settings.subtitle")}</p>
                 </div>
             </header>
 
             <Card className="border-none shadow-xl bg-white/50 backdrop-blur-md">
                 <CardHeader>
-                    <CardTitle className="text-xl">Daily Standards</CardTitle>
+                    <CardTitle className="text-xl">{t("settings.daily_standards")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="space-y-2">
-                        <Label htmlFor="milk">Daily Milk Target (ml)</Label>
+                        <Label htmlFor="milk">{t("settings.milk_target")}</Label>
                         <div className="flex gap-4 items-center">
                             <Input
                                 id="milk"
@@ -71,11 +73,11 @@ export default function SettingsPage() {
                             />
                             <span className="text-muted-foreground font-medium">ml</span>
                         </div>
-                        <p className="text-xs text-muted-foreground italic">Standard goal for milk intake per day.</p>
+                        <p className="text-xs text-muted-foreground italic">{t("settings.milk_standard")}</p>
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="sleep">Daily Sleep Target (hours)</Label>
+                        <Label htmlFor="sleep">{t("settings.sleep_target")}</Label>
                         <div className="flex gap-4 items-center">
                             <Input
                                 id="sleep"
@@ -86,18 +88,18 @@ export default function SettingsPage() {
                             />
                             <span className="text-muted-foreground font-medium">h</span>
                         </div>
-                        <p className="text-xs text-muted-foreground italic">Target total sleep duration (naps + nighttime).</p>
+                        <p className="text-xs text-muted-foreground italic">{t("settings.sleep_standard")}</p>
                     </div>
 
                     <Button onClick={handleSave} className="w-full h-12 gap-2" disabled={loading}>
                         <Save className="w-5 h-5" />
-                        {loading ? "Saving..." : "Save Configuration"}
+                        {loading ? "..." : t("settings.save")}
                     </Button>
                 </CardContent>
             </Card>
 
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-yellow-800 text-sm">
-                <strong>Tip:</strong> These standards will directly influence the color of your dashboard cards. Green means you&apos;ve reached the goal!
+                <strong>Tip:</strong> {t("settings.tip")}
             </div>
         </div>
     )

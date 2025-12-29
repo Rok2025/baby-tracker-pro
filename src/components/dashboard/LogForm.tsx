@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabase"
+import { useLanguage } from "@/components/LanguageProvider"
 
 const formSchema = z.object({
     type: z.enum(["feeding", "sleep", "other"]),
@@ -26,6 +27,7 @@ type FormValues = z.infer<typeof formSchema>
 export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
     const [activeTab, setActiveTab] = useState<"feeding" | "sleep">("feeding")
     const [loading, setLoading] = useState(false)
+    const { t } = useLanguage()
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
@@ -33,15 +35,37 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
             type: "feeding",
             startTime: new Date().toLocaleTimeString("it-IT").slice(0, 5),
             note: "",
+            volume: undefined,
+            endTime: undefined,
         },
     })
 
     const onSubmit = async (values: FormValues) => {
         setLoading(true)
         try {
-            const today = new Date().toISOString().split("T")[0]
-            const startDateTime = `${today}T${values.startTime}:00Z`
-            const endDateTime = values.endTime ? `${today}T${values.endTime}:00Z` : null
+            const now = new Date()
+            const [hours, minutes] = values.startTime.split(":").map(Number)
+            let startDate = new Date()
+            startDate.setHours(hours, minutes, 0, 0)
+
+            // If start time is in the future, assume it was yesterday
+            if (startDate > now) {
+                startDate.setDate(startDate.getDate() - 1)
+            }
+            const startDateTime = startDate.toISOString()
+
+            let endDateTime = null
+            if (values.endTime) {
+                const [eHours, eMinutes] = values.endTime.split(":").map(Number)
+                let endDate = new Date(startDate) // Start from the same day as startDate
+                endDate.setHours(eHours, eMinutes, 0, 0)
+
+                // If end time is numerically before start time, it must be the next day
+                if (endDate < startDate) {
+                    endDate.setDate(endDate.getDate() + 1)
+                }
+                endDateTime = endDate.toISOString()
+            }
 
             const { error } = await supabase.from("activities").insert([
                 {
@@ -74,7 +98,7 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
             <CardHeader className="pb-4">
                 <CardTitle className="text-xl font-semibold flex items-center gap-2">
                     <Plus className="w-5 h-5 text-primary" />
-                    Quick Event
+                    {t("form.quick_event")}
                 </CardTitle>
             </CardHeader>
             <CardContent>
@@ -85,22 +109,22 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
                 }}>
                     <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50">
                         <TabsTrigger value="feeding" className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground">
-                            <Milk className="w-4 h-4 mr-2" /> Feeding
+                            <Milk className="w-4 h-4 mr-2" /> {t("form.feeding")}
                         </TabsTrigger>
                         <TabsTrigger value="sleep" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                            <Moon className="w-4 h-4 mr-2" /> Sleep
+                            <Moon className="w-4 h-4 mr-2" /> {t("form.sleep")}
                         </TabsTrigger>
                     </TabsList>
 
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <Form {...(form as any)}>
+                        <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <FormField
-                                    control={form.control}
+                                    control={form.control as any}
                                     name="startTime"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Start Time</FormLabel>
+                                            <FormLabel>{t("form.start_time")}</FormLabel>
                                             <FormControl>
                                                 <Input type="time" {...field} className="bg-white/80" />
                                             </FormControl>
@@ -111,11 +135,11 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
 
                                 {activeTab === "sleep" && (
                                     <FormField
-                                        control={form.control}
+                                        control={form.control as any}
                                         name="endTime"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>End Time</FormLabel>
+                                                <FormLabel>{t("form.end_time")}</FormLabel>
                                                 <FormControl>
                                                     <Input type="time" {...field} value={field.value || ""} className="bg-white/80" />
                                                 </FormControl>
@@ -127,11 +151,11 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
 
                                 {activeTab === "feeding" && (
                                     <FormField
-                                        control={form.control}
+                                        control={form.control as any}
                                         name="volume"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Volume (ml)</FormLabel>
+                                                <FormLabel>{t("form.volume")}</FormLabel>
                                                 <FormControl>
                                                     <Input
                                                         type="number"
@@ -149,13 +173,13 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
                             </div>
 
                             <FormField
-                                control={form.control}
+                                control={form.control as any}
                                 name="note"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Notes (Optional)</FormLabel>
+                                        <FormLabel>{t("form.note")}</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Any details..." {...field} className="bg-white/80" />
+                                            <Input placeholder={t("form.note")} {...field} value={field.value || ""} className="bg-white/80" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -163,7 +187,7 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
                             />
 
                             <Button type="submit" className="w-full h-12 text-md font-semibold mt-4" disabled={loading}>
-                                {loading ? "Logging..." : "Save Activity"}
+                                {loading ? "..." : t("form.submit")}
                             </Button>
                         </form>
                     </Form>

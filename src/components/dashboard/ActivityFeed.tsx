@@ -16,12 +16,14 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useLanguage } from "@/components/LanguageProvider"
 
 export function ActivityFeed({ refreshKey, onUpdate, date = new Date() }: { refreshKey: number, onUpdate: () => void, date?: Date }) {
     const [activities, setActivities] = useState<Activity[]>([])
     const [loading, setLoading] = useState(true)
     const [editingActivity, setEditingActivity] = useState<Activity | null>(null)
     const [editValues, setEditValues] = useState<Partial<Activity>>({})
+    const { t } = useLanguage()
 
     useEffect(() => {
         async function fetchActivities() {
@@ -34,14 +36,25 @@ export function ActivityFeed({ refreshKey, onUpdate, date = new Date() }: { refr
             const { data, error } = await supabase
                 .from("activities")
                 .select("*")
-                .gte("start_time", startOfDay.toISOString())
+                .or(`start_time.gte.${startOfDay.toISOString()},end_time.gte.${startOfDay.toISOString()}`)
                 .lte("start_time", endOfDay.toISOString())
-                .order("start_time", { ascending: false })
 
             if (error) {
                 toast.error("Failed to load activities")
             } else {
-                setActivities(data || [])
+                const filteredAndSorted = (data || [])
+                    .filter(act => {
+                        const actStart = new Date(act.start_time).getTime()
+                        const actEnd = act.end_time ? new Date(act.end_time).getTime() : actStart
+                        return actStart <= endOfDay.getTime() && actEnd >= startOfDay.getTime()
+                    })
+                    .sort((a, b) => {
+                        const timeA = new Date(a.end_time || a.start_time).getTime()
+                        const timeB = new Date(b.end_time || b.start_time).getTime()
+                        if (timeB !== timeA) return timeB - timeA
+                        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                    })
+                setActivities(filteredAndSorted)
             }
             setLoading(false)
         }
@@ -80,18 +93,18 @@ export function ActivityFeed({ refreshKey, onUpdate, date = new Date() }: { refr
     return (
         <>
             <Card className="border-none shadow-xl bg-white/30 backdrop-blur-md overflow-hidden">
-                <CardHeader className="pb-4">
-                    <CardTitle className="text-xl font-semibold flex items-center justify-between">
-                        Recent Activities
-                        <span className="text-xs font-normal text-muted-foreground bg-white/50 px-2 py-1 rounded-full border">
-                            {date.toLocaleDateString() === new Date().toLocaleDateString() ? "Today" : date.toLocaleDateString()}
+                <CardHeader className="pb-2 pt-4 px-6">
+                    <CardTitle className="text-lg font-semibold flex items-center justify-between">
+                        {t("recent.activities")}
+                        <span className="text-[10px] font-medium text-muted-foreground bg-white/60 px-2 py-0.5 rounded-full border border-black/5">
+                            {date.toLocaleDateString() === new Date().toLocaleDateString() ? t("recent.today") : date.toLocaleDateString()}
                         </span>
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="p-0">
-                    <div className="divide-y divide-black/5">
+                <CardContent className="px-2 pb-2">
+                    <div className="space-y-1">
                         {activities.length === 0 ? (
-                            <div className="p-12 text-center text-muted-foreground italic">No activities recorded for this date yet.</div>
+                            <div className="p-8 text-center text-muted-foreground italic text-sm">{t("recent.no_activities")}</div>
                         ) : (
                             activities.map((activity) => {
                                 const isSleep = activity.type === "sleep"
@@ -99,62 +112,74 @@ export function ActivityFeed({ refreshKey, onUpdate, date = new Date() }: { refr
                                     <div
                                         key={activity.id}
                                         className={cn(
-                                            "p-4 flex items-center justify-between transition-colors group",
-                                            isSleep ? "hover:bg-[#DCFCE7]/50" : "hover:bg-[#FCE7F3]/50"
+                                            "group flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200",
+                                            isSleep ? "hover:bg-[#DCFCE7]/70" : "hover:bg-[#FCE7F3]/70"
                                         )}
                                     >
-                                        <div className="flex items-center gap-4">
-                                            <div className={cn(
-                                                "p-3 rounded-full shadow-sm",
-                                                isSleep ? "bg-[#DCFCE7] text-[#166534]" : "bg-[#FCE7F3] text-[#9D174D]"
-                                            )}>
-                                                {isSleep ? <Moon className="w-5 h-5" /> : <Milk className="w-5 h-5" />}
-                                            </div>
-                                            <div>
+                                        <div className={cn(
+                                            "p-2 rounded-lg shrink-0",
+                                            isSleep ? "bg-[#DCFCE7] text-[#166534]" : "bg-[#FCE7F3] text-[#9D174D]"
+                                        )}>
+                                            {isSleep ? <Moon className="w-4 h-4" /> : <Milk className="w-4 h-4" />}
+                                        </div>
+
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between gap-2">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="font-semibold capitalize text-lg">{activity.type}</span>
-                                                    <span className="text-xs text-muted-foreground bg-black/5 px-2 py-0.5 rounded-full">
+                                                    <span className="font-semibold text-sm capitalize">{t(`form.${activity.type}`)}</span>
+                                                    <span className="text-[10px] font-medium text-muted-foreground">
                                                         {new Date(activity.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        {isSleep && activity.end_time && ` - ${new Date(activity.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
                                                     </span>
                                                 </div>
-                                                <p className="text-sm text-muted-foreground">
+
+                                                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity translate-x-1 group-hover:translate-x-0">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-white/50"
+                                                        onClick={() => {
+                                                            setEditingActivity(activity)
+                                                            setEditValues({
+                                                                volume: activity.volume,
+                                                                note: activity.note,
+                                                                start_time: activity.start_time,
+                                                                end_time: activity.end_time
+                                                            })
+                                                        }}
+                                                    >
+                                                        <Edit2 className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-white/50"
+                                                        onClick={() => handleDelete(activity.id)}
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-baseline gap-2">
+                                                <p className="text-xs text-muted-foreground truncate">
                                                     {isSleep ? (
-                                                        activity.end_time
-                                                            ? `Duration: ${Math.round((new Date(activity.end_time).getTime() - new Date(activity.start_time).getTime()) / (1000 * 60))} mins`
-                                                            : "Ongoing..."
+                                                        activity.end_time ? (() => {
+                                                            const diffMins = Math.round((new Date(activity.end_time).getTime() - new Date(activity.start_time).getTime()) / (1000 * 60))
+                                                            const hours = Math.floor(diffMins / 60)
+                                                            const mins = diffMins % 60
+                                                            return hours > 0 ? `${t("duration.label")}: ${hours}${t("duration.hours")} ${mins}${t("duration.mins")}` : `${t("duration.label")}: ${mins}${t("duration.mins")}`
+                                                        })() : t("duration.ongoing")
                                                     ) : (
                                                         `${activity.volume}ml intake`
                                                     )}
-                                                    {activity.note && <span className="block mt-0.5 italic text-xs">• {activity.note}</span>}
                                                 </p>
+                                                {activity.note && (
+                                                    <span className="text-[10px] text-muted-foreground/70 italic truncate border-l pl-2 border-black/10">
+                                                        {activity.note}
+                                                    </span>
+                                                )}
                                             </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-9 w-9 text-muted-foreground hover:text-primary"
-                                                onClick={() => {
-                                                    setEditingActivity(activity)
-                                                    setEditValues({
-                                                        volume: activity.volume,
-                                                        note: activity.note,
-                                                        start_time: activity.start_time,
-                                                        end_time: activity.end_time
-                                                    })
-                                                }}
-                                            >
-                                                <Edit2 className="w-4 h-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-9 w-9 text-muted-foreground hover:text-destructive"
-                                                onClick={() => handleDelete(activity.id)}
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
                                         </div>
                                     </div>
                                 )

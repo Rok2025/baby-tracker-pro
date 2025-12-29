@@ -20,6 +20,10 @@ export const metadata: Metadata = {
   description: "Modern activity tracker for your baby",
 };
 
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { LanguageProvider } from "@/components/LanguageProvider";
+import { TopBar } from "@/components/layout/TopBar";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -30,14 +34,24 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background flex flex-col md:flex-row`}
       >
-        <Sidebar />
-        <main className="flex-1 flex flex-col pb-20 md:pb-0">
-          <div className="flex-1 overflow-y-auto">
-            {children}
-          </div>
-        </main>
-        <MobileNav />
-        <Toaster position="top-center" richColors />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
+          <LanguageProvider>
+            <Sidebar />
+            <main className="flex-1 flex flex-col pb-20 md:pb-0 relative">
+              <TopBar />
+              <div className="flex-1 overflow-y-auto">
+                {children}
+              </div>
+            </main>
+            <MobileNav />
+            <Toaster position="top-center" richColors />
+          </LanguageProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

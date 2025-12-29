@@ -10,10 +10,12 @@ import { Button } from "@/components/ui/button"
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
+import { useLanguage } from "@/components/LanguageProvider"
 
 export default function HistoryPage() {
     const [date, setDate] = useState<Date>(new Date())
     const [refreshKey, setRefreshKey] = useState(0)
+    const { t, language } = useLanguage()
 
     // In the real app, we should pass the date down to components
     // For this prototype, I'll use the refreshKey to trigger re-fetches
@@ -26,8 +28,8 @@ export default function HistoryPage() {
         <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Records History</h2>
-                    <p className="text-muted-foreground">Browse and review past baby activities.</p>
+                    <h2 className="text-3xl font-bold tracking-tight">{t("history.title")}</h2>
+                    <p className="text-muted-foreground">{t("history.subtitle")}</p>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -54,7 +56,7 @@ export default function HistoryPage() {
                                 )}
                             >
                                 <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
-                                {date ? format(date, "PPP") : <span>Pick a date</span>}
+                                {date ? format(date, language === "zh" ? "yyyy年MM月dd日" : "PPP") : <span>{t("history.pick_date")}</span>}
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="end">
@@ -89,7 +91,7 @@ export default function HistoryPage() {
             <ActivityFeed refreshKey={refreshKey} onUpdate={() => setRefreshKey(k => k + 1)} date={date} />
 
             <div className="p-12 border-2 border-dashed rounded-3xl text-center text-muted-foreground bg-white/20">
-                <p>Charts and Deep Insights coming soon...</p>
+                <p>{t("history.coming_soon")}</p>
             </div>
         </div>
     )
