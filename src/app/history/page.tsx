@@ -11,18 +11,60 @@ import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-reac
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { useLanguage } from "@/components/LanguageProvider"
+import { supabase, Activity } from "@/lib/supabase"
+import { toast } from "sonner"
 
 export default function HistoryPage() {
     const [date, setDate] = useState<Date>(new Date())
     const [refreshKey, setRefreshKey] = useState(0)
+    const [activities, setActivities] = useState<Activity[]>([])
+    const [loading, setLoading] = useState(true)
     const { t, language } = useLanguage()
 
-    // In the real app, we should pass the date down to components
-    // For this prototype, I'll use the refreshKey to trigger re-fetches
-    // but let's assume the components use the selected date.
+    useEffect(() => {
+        async function fetchActivities() {
+            setLoading(true)
+            const startOfDay = new Date(date)
+            startOfDay.setHours(0, 0, 0, 0)
+            const endOfDay = new Date(date)
+            endOfDay.setHours(23, 59, 59, 999)
 
-    // NOTE: To properly support historical dates, ActivityFeed and SummaryCards
-    // need to be date-aware. I'll update them to accept a 'date' prop.
+            const startStr = startOfDay.toISOString()
+            const endStr = endOfDay.toISOString()
+
+            // Faster query using simple overlap logic:
+            // 1. Started today and before end of today
+            // 2. OR started before today but ended today (or still ongoing)
+            const { data, error } = await supabase
+                .from("activities")
+                .select("*")
+                .lte("start_time", endStr)
+                .or(`end_time.gte.${startStr},end_time.is.null`)
+
+            if (error) {
+                console.error("Fetch error:", error)
+                toast.error("Failed to load historical data")
+            } else {
+                // Post-process: final sort and precision filter
+                const processed = (data || [])
+                    .filter(act => {
+                        const actStart = new Date(act.start_time).getTime()
+                        const actEnd = act.end_time ? new Date(act.end_time).getTime() : actStart
+                        return actStart <= endOfDay.getTime() && actEnd >= startOfDay.getTime()
+                    })
+                    .sort((a, b) => {
+                        const timeA = new Date(a.end_time || a.start_time).getTime()
+                        const timeB = new Date(b.end_time || b.start_time).getTime()
+                        if (timeB !== timeA) return timeB - timeA
+                        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                    })
+                setActivities(processed)
+            }
+            setLoading(false)
+        }
+
+        fetchActivities()
+    }, [date, refreshKey])
 
     return (
         <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
@@ -85,10 +127,16 @@ export default function HistoryPage() {
             </header>
 
             {/* Date-Aware Summary */}
-            <SummaryCards refreshKey={refreshKey} date={date} />
+            <SummaryCards refreshKey={refreshKey} date={date} activities={activities} />
 
             {/* Date-Aware Feed */}
-            <ActivityFeed refreshKey={refreshKey} onUpdate={() => setRefreshKey(k => k + 1)} date={date} />
+            <ActivityFeed
+                refreshKey={refreshKey}
+                onUpdate={() => setRefreshKey(k => k + 1)}
+                date={date}
+                activities={activities}
+                loading={loading}
+            />
 
             <div className="p-12 border-2 border-dashed rounded-3xl text-center text-muted-foreground bg-white/20">
                 <p>{t("history.coming_soon")}</p>

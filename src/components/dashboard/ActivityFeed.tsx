@@ -18,49 +18,22 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useLanguage } from "@/components/LanguageProvider"
 
-export function ActivityFeed({ refreshKey, onUpdate, date = new Date() }: { refreshKey: number, onUpdate: () => void, date?: Date }) {
-    const [activities, setActivities] = useState<Activity[]>([])
-    const [loading, setLoading] = useState(true)
+export function ActivityFeed({
+    refreshKey,
+    onUpdate,
+    date = new Date(),
+    activities = [],
+    loading = false
+}: {
+    refreshKey: number,
+    onUpdate: () => void,
+    date?: Date,
+    activities?: Activity[],
+    loading?: boolean
+}) {
     const [editingActivity, setEditingActivity] = useState<Activity | null>(null)
     const [editValues, setEditValues] = useState<Partial<Activity>>({})
     const { t } = useLanguage()
-
-    useEffect(() => {
-        async function fetchActivities() {
-            // Get local start and end of day
-            const startOfDay = new Date(date)
-            startOfDay.setHours(0, 0, 0, 0)
-            const endOfDay = new Date(date)
-            endOfDay.setHours(23, 59, 59, 999)
-
-            const { data, error } = await supabase
-                .from("activities")
-                .select("*")
-                .or(`start_time.gte.${startOfDay.toISOString()},end_time.gte.${startOfDay.toISOString()}`)
-                .lte("start_time", endOfDay.toISOString())
-
-            if (error) {
-                toast.error("Failed to load activities")
-            } else {
-                const filteredAndSorted = (data || [])
-                    .filter(act => {
-                        const actStart = new Date(act.start_time).getTime()
-                        const actEnd = act.end_time ? new Date(act.end_time).getTime() : actStart
-                        return actStart <= endOfDay.getTime() && actEnd >= startOfDay.getTime()
-                    })
-                    .sort((a, b) => {
-                        const timeA = new Date(a.end_time || a.start_time).getTime()
-                        const timeB = new Date(b.end_time || b.start_time).getTime()
-                        if (timeB !== timeA) return timeB - timeA
-                        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-                    })
-                setActivities(filteredAndSorted)
-            }
-            setLoading(false)
-        }
-
-        fetchActivities()
-    }, [refreshKey, date])
 
     async function handleDelete(id: string) {
         const { error } = await supabase.from("activities").delete().eq("id", id)

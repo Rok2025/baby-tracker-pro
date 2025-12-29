@@ -15,34 +15,41 @@ export function Sidebar() {
 
     useEffect(() => {
         async function fetchTodayStats() {
-            const startOfDay = new Date()
+            const now = new Date()
+            const startOfDay = new Date(now)
             startOfDay.setHours(0, 0, 0, 0)
-            const endOfDay = new Date()
+            const endOfDay = new Date(now)
             endOfDay.setHours(23, 59, 59, 999)
 
-            const { data: activities } = await supabase
+            const { data: activities, error } = await supabase
                 .from("activities")
                 .select("*")
-                .or(`start_time.gte.${startOfDay.toISOString()},end_time.gte.${startOfDay.toISOString()}`)
                 .lte("start_time", endOfDay.toISOString())
+                .or(`end_time.gte.${startOfDay.toISOString()},end_time.is.null`)
+
+            if (error) {
+                console.error("Sidebar stats fetch error:", error)
+                return
+            }
 
             if (activities) {
                 let milk = 0
                 let sleepMins = 0
                 activities.forEach(act => {
+                    const actStart = new Date(act.start_time)
+                    const actEnd = act.end_time ? new Date(act.end_time).getTime() : actStart.getTime()
+
+                    // Same logic as SummaryCards for consistency
                     if (act.type === "feeding" && act.volume) {
-                        const actStart = new Date(act.start_time)
                         if (actStart >= startOfDay && actStart <= endOfDay) {
                             milk += act.volume
                         }
                     }
                     if (act.type === "sleep" && act.start_time && act.end_time) {
-                        const startRaw = new Date(act.start_time).getTime()
-                        const endRaw = new Date(act.end_time).getTime()
                         const dayStart = startOfDay.getTime()
                         const dayEnd = endOfDay.getTime()
-                        if (endRaw >= dayStart && endRaw <= dayEnd) {
-                            sleepMins += (endRaw - startRaw) / (1000 * 60)
+                        if (actEnd >= dayStart && actEnd <= dayEnd) {
+                            sleepMins += (actEnd - actStart.getTime()) / (1000 * 60)
                         }
                     }
                 })
@@ -52,7 +59,7 @@ export function Sidebar() {
 
         fetchTodayStats()
         // Simple polling to keep it fresh
-        const interval = setInterval(fetchTodayStats, 30000)
+        const interval = setInterval(fetchTodayStats, 60000) // Increased interval to 1 min to reduce load
         return () => clearInterval(interval)
     }, [])
 

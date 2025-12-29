@@ -1,24 +1,18 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { Milk, Moon } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
-import { supabase } from "@/lib/supabase"
+import { supabase, Activity } from "@/lib/supabase"
 import { useLanguage } from "@/components/LanguageProvider"
 import { cn } from "@/lib/utils"
-
-interface SummaryData {
-    totalVolume: number
-    totalSleepMinutes: number
-}
 
 interface Standard {
     milk: number
     sleep: number
 }
 
-export function SummaryCards({ refreshKey, date = new Date() }: { refreshKey: number; date?: Date }) {
-    const [data, setData] = useState<SummaryData>({ totalVolume: 0, totalSleepMinutes: 0 })
+export function SummaryCards({ refreshKey, date = new Date(), activities = [] }: { refreshKey: number; date?: Date; activities?: Activity[] }) {
     const [standards, setStandards] = useState<Standard>({ milk: 800, sleep: 600 }) // Default 800ml, 10h
     const { t } = useLanguage()
 
@@ -37,55 +31,40 @@ export function SummaryCards({ refreshKey, date = new Date() }: { refreshKey: nu
             }
         }
 
-        async function fetchData() {
-            // Get local start and end of day
-            const startOfDay = new Date(date)
-            startOfDay.setHours(0, 0, 0, 0)
-            const endOfDay = new Date(date)
-            endOfDay.setHours(23, 59, 59, 999)
-
-            const { data: activities, error } = await supabase
-                .from("activities")
-                .select("*")
-                .or(`start_time.gte.${startOfDay.toISOString()},end_time.gte.${startOfDay.toISOString()}`)
-                .lte("start_time", endOfDay.toISOString())
-
-            if (error) {
-                console.error("Error fetching summaries:", error)
-                return
-            }
-
-            let volume = 0
-            let sleepMins = 0
-
-            activities.forEach((act) => {
-                if (act.type === "feeding" && act.volume) {
-                    // Only count feeding if it started today
-                    const actStart = new Date(act.start_time)
-                    if (actStart >= startOfDay && actStart <= endOfDay) {
-                        volume += act.volume
-                    }
-                }
-                if (act.type === "sleep" && act.start_time && act.end_time) {
-                    const startRaw = new Date(act.start_time).getTime()
-                    const endRaw = new Date(act.end_time).getTime()
-
-                    // Rule: Any sleep session that ENDS on the selected day counts fully towards this day
-                    const dayStart = startOfDay.getTime()
-                    const dayEnd = endOfDay.getTime()
-
-                    if (endRaw >= dayStart && endRaw <= dayEnd) {
-                        sleepMins += (endRaw - startRaw) / (1000 * 60)
-                    }
-                }
-            })
-
-            setData({ totalVolume: volume, totalSleepMinutes: sleepMins })
-        }
-
         fetchConfig()
-        fetchData()
-    }, [refreshKey, date])
+    }, [])
+
+    const data = useMemo(() => {
+        // Get local start and end of day
+        const startOfDay = new Date(date)
+        startOfDay.setHours(0, 0, 0, 0)
+        const endOfDay = new Date(date)
+        endOfDay.setHours(23, 59, 59, 999)
+
+        let volume = 0
+        let sleepMins = 0
+
+        activities.forEach((act) => {
+            if (act.type === "feeding" && act.volume) {
+                const actStart = new Date(act.start_time)
+                if (actStart >= startOfDay && actStart <= endOfDay) {
+                    volume += act.volume
+                }
+            }
+            if (act.type === "sleep" && act.start_time && act.end_time) {
+                const actStart = new Date(act.start_time).getTime()
+                const actEnd = new Date(act.end_time).getTime()
+                const dayStart = startOfDay.getTime()
+                const dayEnd = endOfDay.getTime()
+
+                if (actEnd >= dayStart && actEnd <= dayEnd) {
+                    sleepMins += (actEnd - actStart) / (1000 * 60)
+                }
+            }
+        })
+
+        return { totalVolume: volume, totalSleepMinutes: sleepMins }
+    }, [activities, date.toDateString()]) // Stable dependency using toDateString()
 
     const roundedSleepMinutes = Math.round(data.totalSleepMinutes)
     const sleepHours = Math.floor(roundedSleepMinutes / 60)
