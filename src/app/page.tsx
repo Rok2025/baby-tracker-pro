@@ -5,21 +5,33 @@ import { SummaryCards } from "@/components/dashboard/SummaryCards"
 import { LogForm } from "@/components/dashboard/LogForm"
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed"
 import { useLanguage } from "@/components/LanguageProvider"
+import { useAuth } from "@/components/AuthProvider"
 import { supabase, Activity } from "@/lib/supabase"
 import { toast } from "sonner"
-import { LayoutDashboard } from "lucide-react"
+import { LayoutDashboard, Loader2 } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 export default function DashboardPage() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [activities, setActivities] = useState<Activity[]>([])
-  const [loading, setLoading] = useState(true)
+  const [dataLoading, setDataLoading] = useState(true)
   const { t } = useLanguage()
+  const { user, loading: authLoading } = useAuth()
+  const router = useRouter()
 
   const triggerRefresh = () => setRefreshKey(prev => prev + 1)
 
   useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login")
+    }
+  }, [user, authLoading, router])
+
+  useEffect(() => {
+    if (!user) return
+
     async function fetchActivities() {
-      setLoading(true)
+      setDataLoading(true)
       const now = new Date()
       const startOfDay = new Date(now)
       startOfDay.setHours(0, 0, 0, 0)
@@ -29,6 +41,7 @@ export default function DashboardPage() {
       const { data, error } = await supabase
         .from("activities")
         .select("*")
+        .eq("user_id", user.id)
         .lte("start_time", endOfDay.toISOString())
         .or(`end_time.gte.${startOfDay.toISOString()},end_time.is.null`)
 
@@ -57,11 +70,19 @@ export default function DashboardPage() {
           })
         setActivities(processed)
       }
-      setLoading(false)
+      setDataLoading(false)
     }
 
     fetchActivities()
-  }, [refreshKey])
+  }, [refreshKey, user])
+
+  if (authLoading || (!user && !authLoading)) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700">
@@ -87,7 +108,7 @@ export default function DashboardPage() {
             refreshKey={refreshKey}
             onUpdate={triggerRefresh}
             activities={activities}
-            loading={loading}
+            loading={dataLoading}
             maxHeight="350px"
           />
         </div>

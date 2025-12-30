@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabase"
 import { useLanguage } from "@/components/LanguageProvider"
+import { useAuth } from "@/components/AuthProvider"
 import { cn } from "@/lib/utils"
 
 const formSchema = z.object({
@@ -31,6 +32,7 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
     const [activeTab, setActiveTab] = useState<"feeding" | "sleep">("feeding")
     const [loading, setLoading] = useState(false)
     const { t, language } = useLanguage()
+    const { user } = useAuth()
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
@@ -76,6 +78,7 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
 
             const { error } = await supabase.from("activities").insert([
                 {
+                    user_id: user?.id,
                     type: values.type,
                     start_time: startDateTime,
                     end_time: endDateTime,

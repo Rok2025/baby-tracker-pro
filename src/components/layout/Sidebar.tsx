@@ -9,11 +9,15 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { ThemeToggle } from "../ThemeToggle"
 import { LanguageToggle } from "../LanguageToggle"
+import { useAuth } from "@/components/AuthProvider"
+import { LogOut } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import pkg from "../../../package.json"
 
 export function Sidebar() {
     const pathname = usePathname()
     const { t } = useLanguage()
+    const { user, signOut } = useAuth()
     const [stats, setStats] = useState({ milk: 0, sleepMins: 0 })
 
     useEffect(() => {
@@ -125,6 +129,19 @@ export function Sidebar() {
                     <ThemeToggle />
                     <LanguageToggle />
                 </div>
+                {user && (
+                    <div className="mt-4">
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="w-full justify-start text-muted-foreground hover:text-destructive"
+                            onClick={() => signOut()}
+                        >
+                            <LogOut className="w-4 h-4 mr-2" />
+                            {user.email?.split('@')[0]}
+                        </Button>
+                    </div>
+                )}
                 <div className="mt-4 text-center">
                     <span className="text-[10px] text-muted-foreground opacity-50">v{pkg.version}</span>
                 </div>

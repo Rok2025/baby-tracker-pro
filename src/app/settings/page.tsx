@@ -7,22 +7,38 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
-import { Settings as SettingsIcon, Save } from "lucide-react"
+import { Settings as SettingsIcon, Save, Loader2, Database } from "lucide-react"
 import { useLanguage } from "@/components/LanguageProvider"
+import { useAuth } from "@/components/AuthProvider"
+import { useRouter } from "next/navigation"
 
-import { ConfigurationProvider, useConfiguration } from "@/components/ConfigurationProvider"
+import { useConfiguration } from "@/components/ConfigurationProvider"
 import { ThemeToggle } from "@/components/ThemeToggle"
 
 export default function SettingsPage() {
     const [milkTarget, setMilkTarget] = useState(800)
     const [sleepTarget, setSleepTarget] = useState(10)
-    const [loading, setLoading] = useState(false)
+    const [dataLoading, setDataLoading] = useState(false)
+    const [migrating, setMigrating] = useState(false)
     const { t } = useLanguage()
     const { fontSize, setFontSize } = useConfiguration()
+    const { user, loading: authLoading } = useAuth()
+    const router = useRouter()
 
     useEffect(() => {
+        if (!authLoading && !user) {
+            router.push("/login")
+        }
+    }, [user, authLoading, router])
+
+    useEffect(() => {
+        if (!user) return
+
         async function fetchConfig() {
-            const { data, error } = await supabase.from("user_config").select("*")
+            const { data } = await supabase
+                .from("user_config")
+                .select("*")
+                .eq("user_id", user.id)
             if (data) {
                 data.forEach(item => {
                     if (item.key === "target_milk_ml") setMilkTarget(parseFloat(item.value))
@@ -31,20 +47,59 @@ export default function SettingsPage() {
             }
         }
         fetchConfig()
-    }, [])
+    }, [user])
+
+    if (authLoading || (!user && !authLoading)) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+        )
+    }
+
+    const handleMigrate = async () => {
+        if (!user) return
+        setMigrating(true)
+        try {
+            // Migrate activities
+            const { count: actCount, error: actError } = await supabase
+                .from("activities")
+                .update({ user_id: user.id })
+                .is("user_id", null)
+                .select("*", { count: 'exact', head: true })
+            
+            if (actError) throw actError
+
+            // Migrate config
+            const { count: confCount, error: confError } = await supabase
+                .from("user_config")
+                .update({ user_id: user.id })
+                .is("user_id", null)
+                .select("*", { count: 'exact', head: true })
+            
+            if (confError) throw confError
+
+            toast.success(`成功迁移 ${actCount || 0} 条活动记录和 ${confCount || 0} 条配置信息！`)
+        } catch (err) {
+            console.error(err)
+            toast.error("迁移失败：请确保数据库已添加 user_id 列，并暂时关闭了 RLS。")
+        } finally {
+            setMigrating(false)
+        }
+    }
 
     async function handleSave() {
-        setLoading(true)
+        setDataLoading(true)
         try {
             await supabase.from("user_config").upsert([
-                { key: "target_milk_ml", value: milkTarget.toString() },
-                { key: "target_sleep_hours", value: sleepTarget.toString() }
-            ], { onConflict: "key" })
+                { user_id: user.id, key: "target_milk_ml", value: milkTarget.toString() },
+                { user_id: user.id, key: "target_sleep_hours", value: sleepTarget.toString() }
+            ], { onConflict: "user_id,key" })
             toast.success("Settings saved successfully!")
-        } catch (err: any) {
+        } catch (err) {
             toast.error("Failed to save settings")
         } finally {
-            setLoading(false)
+            setDataLoading(false)
         }
     }
 
@@ -96,9 +151,9 @@ export default function SettingsPage() {
                             <p className="text-xs text-muted-foreground italic">{t("settings.sleep_standard")}</p>
                         </div>
 
-                        <Button onClick={handleSave} className="w-full h-12 gap-2 font-semibold shadow-lg shadow-primary/20" disabled={loading}>
-                            <Save className="w-5 h-5" />
-                            {loading ? "..." : t("settings.save")}
+                        <Button onClick={handleSave} className="w-full h-12 gap-2 font-semibold shadow-lg shadow-primary/20" disabled={dataLoading}>
+                            {dataLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                            {dataLoading ? "..." : t("settings.save")}
                         </Button>
                     </CardContent>
                 </Card>
@@ -141,6 +196,29 @@ export default function SettingsPage() {
                                 <ThemeToggle />
                             </div>
                         </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-none shadow-2xl bg-red-50/50 backdrop-blur-xl border border-red-100">
+                    <CardHeader>
+                        <CardTitle className="text-xl font-semibold text-red-800 flex items-center gap-2">
+                            <Database className="w-5 h-5" />
+                            数据迁移
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <p className="text-sm text-red-700">
+                            如果你在登录前有记录过数据，点击下方按钮将所有“匿名数据”归属到你当前的账户下。
+                        </p>
+                        <Button 
+                            variant="destructive" 
+                            className="w-full" 
+                            onClick={handleMigrate}
+                            disabled={migrating}
+                        >
+                            {migrating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                            立即迁移现有数据
+                        </Button>
                     </CardContent>
                 </Card>
             </div>

@@ -8,6 +8,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 export type Activity = {
   id: string
   created_at: string
+  user_id: string // 新增
   type: 'sleep' | 'feeding' | 'other'
   start_time: string
   end_time?: string
@@ -16,6 +17,8 @@ export type Activity = {
 }
 
 export type UserConfig = {
+  id: string // 新增
+  user_id: string // 新增
   key: string
   value: any
 }

@@ -11,19 +11,32 @@ import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-reac
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { useLanguage } from "@/components/LanguageProvider"
+import { useAuth } from "@/components/AuthProvider"
 import { supabase, Activity } from "@/lib/supabase"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
+import { Loader2 } from "lucide-react"
 
 export default function HistoryPage() {
     const [date, setDate] = useState<Date>(new Date())
     const [refreshKey, setRefreshKey] = useState(0)
     const [activities, setActivities] = useState<Activity[]>([])
-    const [loading, setLoading] = useState(true)
+    const [dataLoading, setDataLoading] = useState(true)
     const { t, language } = useLanguage()
+    const { user, loading: authLoading } = useAuth()
+    const router = useRouter()
 
     useEffect(() => {
+        if (!authLoading && !user) {
+            router.push("/login")
+        }
+    }, [user, authLoading, router])
+
+    useEffect(() => {
+        if (!user) return
+
         async function fetchActivities() {
-            setLoading(true)
+            setDataLoading(true)
             const startOfDay = new Date(date)
             startOfDay.setHours(0, 0, 0, 0)
             const endOfDay = new Date(date)
@@ -38,6 +51,7 @@ export default function HistoryPage() {
             const { data, error } = await supabase
                 .from("activities")
                 .select("*")
+                .eq("user_id", user.id)
                 .lte("start_time", endStr)
                 .or(`end_time.gte.${startStr},end_time.is.null`)
 
@@ -68,11 +82,19 @@ export default function HistoryPage() {
                     })
                 setActivities(processed)
             }
-            setLoading(false)
+            setDataLoading(false)
         }
 
         fetchActivities()
-    }, [date, refreshKey])
+    }, [date, refreshKey, user])
+
+    if (authLoading || (!user && !authLoading)) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+        )
+    }
 
     return (
         <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
@@ -144,7 +166,7 @@ export default function HistoryPage() {
                 onUpdate={() => setRefreshKey(k => k + 1)}
                 date={date}
                 activities={activities}
-                loading={loading}
+                loading={dataLoading}
             />
         </div>
     )
