@@ -51,7 +51,7 @@ export default function HistoryPage() {
             const { data, error } = await supabase
                 .from("activities")
                 .select("*")
-                .eq("user_id", user.id)
+                .eq("user_id", user?.id)
                 .lte("start_time", endStr)
                 .or(`end_time.gte.${startStr},end_time.is.null`)
 

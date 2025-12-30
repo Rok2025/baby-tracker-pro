@@ -38,7 +38,7 @@ export default function SettingsPage() {
             const { data } = await supabase
                 .from("user_config")
                 .select("*")
-                .eq("user_id", user.id)
+                .eq("user_id", user?.id)
             if (data) {
                 data.forEach(item => {
                     if (item.key === "target_milk_ml") setMilkTarget(parseFloat(item.value))
@@ -64,7 +64,7 @@ export default function SettingsPage() {
             // Migrate activities
             const { count: actCount, error: actError } = await supabase
                 .from("activities")
-                .update({ user_id: user.id })
+                .update({ user_id: user?.id })
                 .is("user_id", null)
                 .select("*", { count: 'exact', head: true })
             
@@ -73,7 +73,7 @@ export default function SettingsPage() {
             // Migrate config
             const { count: confCount, error: confError } = await supabase
                 .from("user_config")
-                .update({ user_id: user.id })
+                .update({ user_id: user?.id })
                 .is("user_id", null)
                 .select("*", { count: 'exact', head: true })
             
@@ -89,6 +89,7 @@ export default function SettingsPage() {
     }
 
     async function handleSave() {
+        if (!user) return
         setDataLoading(true)
         try {
             await supabase.from("user_config").upsert([

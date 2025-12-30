@@ -41,7 +41,7 @@ export default function DashboardPage() {
       const { data, error } = await supabase
         .from("activities")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", user?.id)
         .lte("start_time", endOfDay.toISOString())
         .or(`end_time.gte.${startOfDay.toISOString()},end_time.is.null`)
 
