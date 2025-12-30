@@ -57,6 +57,7 @@ export function SummaryCards({ refreshKey, date = new Date(), activities = [] }:
                 const dayStart = startOfDay.getTime()
                 const dayEnd = endOfDay.getTime()
 
+                // 如果睡眠在所选日期内结束，则将完整时长计入该日期
                 if (actEnd >= dayStart && actEnd <= dayEnd) {
                     sleepMins += (actEnd - actStart) / (1000 * 60)
                 }
@@ -71,12 +72,12 @@ export function SummaryCards({ refreshKey, date = new Date(), activities = [] }:
     const sleepMins = roundedSleepMinutes % 60
 
     // Color logic based on standards
-    const milkColor = data.totalVolume >= standards.milk ? "text-[#166534] bg-[#DCFCE7]" : "text-[#9D174D] bg-[#FCE7F3]"
-    const sleepColor = roundedSleepMinutes >= standards.sleep ? "text-[#166534] bg-[#DCFCE7]" : "text-[#9D174D] bg-[#FCE7F3]"
+    const milkColor = data.totalVolume >= standards.milk ? "text-primary bg-primary/10" : "text-destructive bg-destructive/10"
+    const sleepColor = roundedSleepMinutes >= standards.sleep ? "text-primary bg-primary/10" : "text-destructive bg-destructive/10"
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <Card className={`border-none shadow-lg transition-all duration-500 overflow-hidden ${milkColor}`}>
+            <Card className={`border-none shadow-2xl transition-all duration-500 overflow-hidden bg-card/60 backdrop-blur-xl ${milkColor}`}>
                 <CardContent className="p-6 flex items-center justify-between">
                     <div className="space-y-1">
                         <p className="text-sm font-medium opacity-80 uppercase tracking-wider">{t("summary.milk")}</p>
@@ -89,12 +90,12 @@ export function SummaryCards({ refreshKey, date = new Date(), activities = [] }:
                         </div>
                         <p className="text-xs opacity-60">{t("summary.target")}: {standards.milk}ml</p>
                     </div>
-                    <div className="p-3 bg-white/20 rounded-2xl">
+                    <div className="p-3 bg-white/20 dark:bg-black/20 rounded-2xl">
                         <Milk className="w-10 h-10" />
                     </div>
                 </CardContent>
                 {/* Simple Progress Indicator */}
-                <div className="h-1.5 bg-black/5 w-full">
+                <div className="h-1.5 bg-black/5 dark:bg-white/5 w-full">
                     <div
                         className="h-full bg-current transition-all duration-1000"
                         style={{ width: `${Math.min((data.totalVolume / standards.milk) * 100, 100)}%` }}
@@ -102,7 +103,7 @@ export function SummaryCards({ refreshKey, date = new Date(), activities = [] }:
                 </div>
             </Card>
 
-            <Card className={`border-none shadow-lg transition-all duration-500 overflow-hidden ${sleepColor}`}>
+            <Card className={`border-none shadow-2xl transition-all duration-500 overflow-hidden bg-card/60 backdrop-blur-xl ${sleepColor}`}>
                 <CardContent className="p-6 flex items-center justify-between">
                     <div className="space-y-1">
                         <p className="text-sm font-medium opacity-80 uppercase tracking-wider">{t("summary.sleep")}</p>
@@ -116,11 +117,11 @@ export function SummaryCards({ refreshKey, date = new Date(), activities = [] }:
                         </div>
                         <p className="text-xs opacity-60">{t("summary.target")}: {standards.sleep / 60}{t("duration.hours")}</p>
                     </div>
-                    <div className="p-3 bg-white/20 rounded-2xl">
+                    <div className="p-3 bg-white/20 dark:bg-black/20 rounded-2xl">
                         <Moon className="w-10 h-10" />
                     </div>
                 </CardContent>
-                <div className="h-1.5 bg-black/5 w-full">
+                <div className="h-1.5 bg-black/5 dark:bg-white/5 w-full">
                     <div
                         className="h-full bg-current transition-all duration-1000"
                         style={{ width: `${Math.min((roundedSleepMinutes / standards.sleep) * 100, 100)}%` }}

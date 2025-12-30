@@ -13,12 +13,15 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabase"
 import { useLanguage } from "@/components/LanguageProvider"
+import { cn } from "@/lib/utils"
 
 const formSchema = z.object({
     type: z.enum(["feeding", "sleep", "other"]),
+    date: z.string().min(1, "Required"),
+    startDay: z.enum(["today", "yesterday"]),
     startTime: z.string().min(1, "Required"),
     endTime: z.string().optional(),
-    volume: z.coerce.number().optional(),
+    volume: z.union([z.number(), z.string()]).optional(),
     note: z.string().optional(),
 })
 
@@ -27,12 +30,14 @@ type FormValues = z.infer<typeof formSchema>
 export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
     const [activeTab, setActiveTab] = useState<"feeding" | "sleep">("feeding")
     const [loading, setLoading] = useState(false)
-    const { t } = useLanguage()
+    const { t, language } = useLanguage()
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             type: "feeding",
+            date: new Date().toISOString().split('T')[0],
+            startDay: "today",
             startTime: new Date().toLocaleTimeString("it-IT").slice(0, 5),
             note: "",
             volume: undefined,
@@ -43,25 +48,27 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
     const onSubmit = async (values: FormValues) => {
         setLoading(true)
         try {
-            const now = new Date()
-            const [hours, minutes] = values.startTime.split(":").map(Number)
-            let startDate = new Date()
-            startDate.setHours(hours, minutes, 0, 0)
-
-            // If start time is in the future, assume it was yesterday
-            if (startDate > now) {
+            const [year, month, day] = values.date.split("-").map(Number)
+            const [sh, sm] = values.startTime.split(":").map(Number)
+            
+            const startDate = new Date(year, month - 1, day, sh, sm)
+            
+            // 根据切换按钮调整开始日期
+            if (values.startDay === "yesterday") {
                 startDate.setDate(startDate.getDate() - 1)
             }
+            
             const startDateTime = startDate.toISOString()
 
             let endDateTime = null
             if (values.endTime) {
-                const [eHours, eMinutes] = values.endTime.split(":").map(Number)
-                let endDate = new Date(startDate) // Start from the same day as startDate
-                endDate.setHours(eHours, eMinutes, 0, 0)
-
-                // If end time is numerically before start time, it must be the next day
-                if (endDate < startDate) {
+                const [eh, em] = values.endTime.split(":").map(Number)
+                // 结束时间的基础日期与开始时间调整后的日期一致
+                const endDate = new Date(startDate.getTime())
+                endDate.setHours(eh, em, 0, 0)
+                
+                // 如果结束时间早于开始时间，自动视为第二天
+                if (endDate <= startDate) {
                     endDate.setDate(endDate.getDate() + 1)
                 }
                 endDateTime = endDate.toISOString()
@@ -72,7 +79,7 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
                     type: values.type,
                     start_time: startDateTime,
                     end_time: endDateTime,
-                    volume: values.volume,
+                    volume: values.volume ? Number(values.volume) : undefined,
                     note: values.note,
                 },
             ])
@@ -81,20 +88,25 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
 
             toast.success("Activity logged successfully!")
             form.reset({
-                ...form.getValues(),
-                volume: undefined,
+                type: activeTab,
+                date: new Date().toISOString().split('T')[0],
+                startDay: "today",
+                startTime: new Date().toLocaleTimeString("it-IT").slice(0, 5),
                 note: "",
+                volume: undefined,
+                endTime: undefined,
             })
             onSuccess?.()
-        } catch (err: any) {
-            toast.error(`Error logging activity: ${err.message}`)
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : String(err)
+            toast.error(`Error logging activity: ${message}`)
         } finally {
             setLoading(false)
         }
     }
 
     return (
-        <Card className="border-none shadow-xl bg-white/50 backdrop-blur-md">
+        <Card className="border-none shadow-2xl bg-card/60 backdrop-blur-xl">
             <CardHeader className="pb-4">
                 <CardTitle className="text-xl font-semibold flex items-center gap-2">
                     <Plus className="w-5 h-5 text-primary" />
@@ -107,26 +119,74 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
                     setActiveTab(type)
                     form.setValue("type", type)
                 }}>
-                    <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50">
-                        <TabsTrigger value="feeding" className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground">
+                    <TabsList className="grid w-full grid-cols-2 mb-6 bg-background/50 p-1 border border-muted h-12">
+                        <TabsTrigger value="feeding" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">
                             <Milk className="w-4 h-4 mr-2" /> {t("form.feeding")}
                         </TabsTrigger>
-                        <TabsTrigger value="sleep" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                        <TabsTrigger value="sleep" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">
                             <Moon className="w-4 h-4 mr-2" /> {t("form.sleep")}
                         </TabsTrigger>
                     </TabsList>
 
-                    <Form {...(form as any)}>
-                        <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-4">
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                            <FormField
+                                control={form.control}
+                                name="date"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-sm font-medium opacity-80">记录日期</FormLabel>
+                                        <FormControl>
+                                            <Input type="date" {...field} className="bg-background/50 border-muted focus:border-primary transition-colors h-11" />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
                             <div className="grid grid-cols-2 gap-4">
                                 <FormField
-                                    control={form.control as any}
+                                    control={form.control}
                                     name="startTime"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>{t("form.start_time")}</FormLabel>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <FormLabel className="text-sm font-medium opacity-80 mb-0">{t("form.start_time")}</FormLabel>
+                                                <FormField
+                                                    control={form.control}
+                                                    name="startDay"
+                                                    render={({ field: dayField }) => (
+                                                        <div className="flex p-0.5 bg-background/50 border border-muted rounded-lg shrink-0 scale-90 origin-left">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => dayField.onChange("yesterday")}
+                                                                className={cn(
+                                                                    "px-2 py-0.5 rounded-md text-[9px] font-bold transition-all",
+                                                                    dayField.value === "yesterday" 
+                                                                        ? "bg-orange-500/10 text-orange-600" 
+                                                                        : "text-muted-foreground/40 hover:text-muted-foreground"
+                                                                )}
+                                                            >
+                                                                {language === 'zh' ? "昨日" : "Yest"}
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => dayField.onChange("today")}
+                                                                className={cn(
+                                                                    "px-2 py-0.5 rounded-md text-[9px] font-bold transition-all",
+                                                                    dayField.value === "today" 
+                                                                        ? "bg-primary/10 text-primary" 
+                                                                        : "text-muted-foreground/40 hover:text-muted-foreground"
+                                                                )}
+                                                            >
+                                                                {language === 'zh' ? "今日" : "Today"}
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                />
+                                            </div>
                                             <FormControl>
-                                                <Input type="time" {...field} className="bg-white/80" />
+                                                <Input type="time" {...field} className="bg-background/50 border-muted focus:border-primary transition-colors h-11" />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -135,13 +195,13 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
 
                                 {activeTab === "sleep" && (
                                     <FormField
-                                        control={form.control as any}
+                                        control={form.control}
                                         name="endTime"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>{t("form.end_time")}</FormLabel>
+                                                <FormLabel className="text-sm font-medium opacity-80">{t("form.end_time")}</FormLabel>
                                                 <FormControl>
-                                                    <Input type="time" {...field} value={field.value || ""} className="bg-white/80" />
+                                                    <Input type="time" {...field} value={field.value || ""} className="bg-background/50 border-muted focus:border-primary transition-colors h-11" />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -151,18 +211,18 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
 
                                 {activeTab === "feeding" && (
                                     <FormField
-                                        control={form.control as any}
+                                        control={form.control}
                                         name="volume"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>{t("form.volume")}</FormLabel>
+                                                <FormLabel className="text-sm font-medium opacity-80">{t("form.volume")}</FormLabel>
                                                 <FormControl>
                                                     <Input
                                                         type="number"
                                                         placeholder="100"
                                                         {...field}
                                                         value={field.value ?? ""}
-                                                        className="bg-white/80"
+                                                        className="bg-background/50 border-muted focus:border-primary transition-colors h-11"
                                                     />
                                                 </FormControl>
                                                 <FormMessage />
@@ -173,20 +233,20 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
                             </div>
 
                             <FormField
-                                control={form.control as any}
+                                control={form.control}
                                 name="note"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>{t("form.note")}</FormLabel>
+                                        <FormLabel className="text-sm font-medium opacity-80">{t("form.note")}</FormLabel>
                                         <FormControl>
-                                            <Input placeholder={t("form.note")} {...field} value={field.value || ""} className="bg-white/80" />
+                                            <Input placeholder={t("form.note")} {...field} value={field.value || ""} className="bg-background/50 border-muted focus:border-primary transition-colors h-11" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
 
-                            <Button type="submit" className="w-full h-12 text-md font-semibold mt-4" disabled={loading}>
+                            <Button type="submit" className="w-full h-12 text-md font-semibold mt-4 shadow-lg shadow-primary/20" disabled={loading}>
                                 {loading ? "..." : t("form.submit")}
                             </Button>
                         </form>

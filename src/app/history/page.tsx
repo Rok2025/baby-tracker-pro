@@ -53,8 +53,16 @@ export default function HistoryPage() {
                         return actStart <= endOfDay.getTime() && actEnd >= startOfDay.getTime()
                     })
                     .sort((a, b) => {
-                        const timeA = new Date(a.end_time || a.start_time).getTime()
-                        const timeB = new Date(b.end_time || b.start_time).getTime()
+                        const getSortTime = (act: Activity) => {
+                            const start = new Date(act.start_time).getTime()
+                            // 如果是跨日睡眠（开始于所选日期之前），使用结束时间排序；否则使用开始时间排序
+                            if (act.type === 'sleep' && start < startOfDay.getTime() && act.end_time) {
+                                return new Date(act.end_time).getTime()
+                            }
+                            return start
+                        }
+                        const timeA = getSortTime(a)
+                        const timeB = getSortTime(b)
                         if (timeB !== timeA) return timeB - timeA
                         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
                     })
@@ -78,7 +86,7 @@ export default function HistoryPage() {
                     <Button
                         variant="outline"
                         size="icon"
-                        className="h-12 w-12 rounded-xl border-primary/20 bg-white/50"
+                        className="h-12 w-12 rounded-xl border-muted bg-card/60 backdrop-blur-xl shadow-lg"
                         onClick={() => {
                             const newDate = new Date(date)
                             newDate.setDate(newDate.getDate() - 1)
@@ -93,7 +101,7 @@ export default function HistoryPage() {
                             <Button
                                 variant={"outline"}
                                 className={cn(
-                                    "w-[240px] justify-start text-left font-normal h-12 rounded-xl border-primary/20 bg-white/50",
+                                    "w-[240px] justify-start text-left font-normal h-12 rounded-xl border-muted bg-card/60 backdrop-blur-xl shadow-lg",
                                     !date && "text-muted-foreground"
                                 )}
                             >
@@ -101,12 +109,13 @@ export default function HistoryPage() {
                                 {date ? format(date, language === "zh" ? "yyyy年MM月dd日" : "PPP") : <span>{t("history.pick_date")}</span>}
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="end">
+                        <PopoverContent className="w-auto p-0 rounded-2xl border-muted shadow-2xl bg-card/95 backdrop-blur-xl" align="end">
                             <Calendar
                                 mode="single"
                                 selected={date}
                                 onSelect={(d) => d && setDate(d)}
                                 initialFocus
+                                className="rounded-2xl"
                             />
                         </PopoverContent>
                     </Popover>
@@ -114,7 +123,7 @@ export default function HistoryPage() {
                     <Button
                         variant="outline"
                         size="icon"
-                        className="h-12 w-12 rounded-xl border-primary/20 bg-white/50"
+                        className="h-12 w-12 rounded-xl border-muted bg-card/60 backdrop-blur-xl shadow-lg"
                         onClick={() => {
                             const newDate = new Date(date)
                             newDate.setDate(newDate.getDate() + 1)
@@ -137,10 +146,6 @@ export default function HistoryPage() {
                 activities={activities}
                 loading={loading}
             />
-
-            <div className="p-12 border-2 border-dashed rounded-3xl text-center text-muted-foreground bg-white/20">
-                <p>{t("history.coming_soon")}</p>
-            </div>
         </div>
     )
 }

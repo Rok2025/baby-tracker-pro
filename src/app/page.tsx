@@ -7,6 +7,7 @@ import { ActivityFeed } from "@/components/dashboard/ActivityFeed"
 import { useLanguage } from "@/components/LanguageProvider"
 import { supabase, Activity } from "@/lib/supabase"
 import { toast } from "sonner"
+import { LayoutDashboard } from "lucide-react"
 
 export default function DashboardPage() {
   const [refreshKey, setRefreshKey] = useState(0)
@@ -41,8 +42,16 @@ export default function DashboardPage() {
             return actStart <= endOfDay.getTime() && actEnd >= startOfDay.getTime()
           })
           .sort((a, b) => {
-            const timeA = new Date(a.end_time || a.start_time).getTime()
-            const timeB = new Date(b.end_time || b.start_time).getTime()
+            const getSortTime = (act: Activity) => {
+              const start = new Date(act.start_time).getTime()
+              // 如果是昨晚开始的睡眠，使用结束时间排序；否则使用开始时间排序
+              if (act.type === 'sleep' && start < startOfDay.getTime() && act.end_time) {
+                return new Date(act.end_time).getTime()
+              }
+              return start
+            }
+            const timeA = getSortTime(a)
+            const timeB = getSortTime(b)
             if (timeB !== timeA) return timeB - timeA
             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
           })
@@ -56,9 +65,14 @@ export default function DashboardPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700">
-      <header className="space-y-1">
-        <h2 className="text-3xl font-bold tracking-tight text-foreground/80">{t("dashboard.welcome")}</h2>
-        <p className="text-muted-foreground">{t("dashboard.subtitle")}</p>
+      <header className="flex items-center gap-4">
+        <div className="p-3 bg-primary/20 rounded-2xl">
+          <LayoutDashboard className="w-8 h-8 text-primary" />
+        </div>
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">{t("dashboard.welcome")}</h2>
+          <p className="text-muted-foreground">{t("dashboard.subtitle")}</p>
+        </div>
       </header>
 
       <SummaryCards refreshKey={refreshKey} activities={activities} />
@@ -74,6 +88,7 @@ export default function DashboardPage() {
             onUpdate={triggerRefresh}
             activities={activities}
             loading={loading}
+            maxHeight="350px"
           />
         </div>
       </div>

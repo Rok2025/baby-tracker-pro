@@ -24,6 +24,8 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { TopBar } from "@/components/layout/TopBar";
 
+import { ConfigurationProvider } from "@/components/ConfigurationProvider";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -41,15 +43,17 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <LanguageProvider>
-            <Sidebar />
-            <main className="flex-1 flex flex-col pb-20 md:pb-0 relative">
-              <TopBar />
-              <div className="flex-1 overflow-y-auto">
-                {children}
-              </div>
-            </main>
-            <MobileNav />
-            <Toaster position="top-center" richColors />
+            <ConfigurationProvider>
+              <Sidebar />
+              <main className="flex-1 flex flex-col pb-20 md:pb-0 relative">
+                <TopBar />
+                <div className="flex-1 overflow-y-auto">
+                  {children}
+                </div>
+              </main>
+              <MobileNav />
+              <Toaster position="top-center" richColors />
+            </ConfigurationProvider>
           </LanguageProvider>
         </ThemeProvider>
       </body>
