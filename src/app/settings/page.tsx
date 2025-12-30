@@ -62,24 +62,26 @@ export default function SettingsPage() {
         setMigrating(true)
         try {
             // Migrate activities
-            const { count: actCount, error: actError } = await supabase
+            const { data: actData, error: actError } = await supabase
                 .from("activities")
                 .update({ user_id: user?.id })
                 .is("user_id", null)
-                .select("*", { count: 'exact', head: true })
+                .select()
             
             if (actError) throw actError
+            const actCount = actData?.length || 0
 
             // Migrate config
-            const { count: confCount, error: confError } = await supabase
+            const { data: confData, error: confError } = await supabase
                 .from("user_config")
                 .update({ user_id: user?.id })
                 .is("user_id", null)
-                .select("*", { count: 'exact', head: true })
+                .select()
             
             if (confError) throw confError
+            const confCount = confData?.length || 0
 
-            toast.success(`成功迁移 ${actCount || 0} 条活动记录和 ${confCount || 0} 条配置信息！`)
+            toast.success(`成功迁移 ${actCount} 条活动记录和 ${confCount} 条配置信息！`)
         } catch (err) {
             console.error(err)
             toast.error("迁移失败：请确保数据库已添加 user_id 列，并暂时关闭了 RLS。")
