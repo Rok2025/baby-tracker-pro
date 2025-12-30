@@ -9,6 +9,7 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { ThemeToggle } from "../ThemeToggle"
 import { LanguageToggle } from "../LanguageToggle"
+import pkg from "../../../package.json"
 
 export function Sidebar() {
     const pathname = usePathname()
@@ -123,6 +124,9 @@ export function Sidebar() {
                 <div className="mt-4 flex items-center justify-center gap-4">
                     <ThemeToggle />
                     <LanguageToggle />
+                </div>
+                <div className="mt-4 text-center">
+                    <span className="text-[10px] text-muted-foreground opacity-50">v{pkg.version}</span>
                 </div>
             </div>
         </div>
