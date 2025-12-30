@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
+  const { t } = useLanguage()
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,14 +28,14 @@ export default function LoginPage() {
           password,
         })
         if (error) throw error
-        toast.success("Check your email for the confirmation link!")
+        toast.success(t("auth.check_email"))
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         })
         if (error) throw error
-        toast.success("Logged in successfully!")
+        toast.success(t("auth.login_success"))
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Authentication failed"
@@ -49,18 +50,18 @@ export default function LoginPage() {
       <Card className="w-full max-w-md border-2">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
-            {isSignUp ? "Create an account" : "Welcome back"}
+            {isSignUp ? t("auth.signup_title") : t("auth.login_title")}
           </CardTitle>
           <CardDescription className="text-center">
             {isSignUp 
-              ? "Enter your email to get started" 
-              : "Enter your credentials to access your account"}
+              ? t("auth.signup_subtitle") 
+              : t("auth.login_subtitle")}
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleAuth}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("auth.email")}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input 
@@ -75,7 +76,7 @@ export default function LoginPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("auth.password")}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input 
@@ -92,17 +93,17 @@ export default function LoginPage() {
           <CardFooter className="flex flex-col space-y-4">
             <Button className="w-full" type="submit" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isSignUp ? "Sign Up" : "Sign In"}
+              {isSignUp ? t("auth.signup_button") : t("auth.login_button")}
             </Button>
 
             <div className="text-sm text-center text-muted-foreground">
-              {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
+              {isSignUp ? t("auth.have_account") : t("auth.no_account")}{" "}
               <button 
                 type="button"
                 className="text-primary underline underline-offset-4 hover:text-primary/80"
                 onClick={() => setIsSignUp(!isSignUp)}
               >
-                {isSignUp ? "Sign In" : "Sign Up"}
+                {isSignUp ? t("auth.switch_to_login") : t("auth.switch_to_signup")}
               </button>
             </div>
           </CardFooter>

@@ -59,7 +59,21 @@ const translations = {
         "duration.ongoing": "Ongoing...",
         "duration.label": "Duration",
         "sidebar.quick_stat": "Quick Stat",
-        "sidebar.today": "Today"
+        "sidebar.today": "Today",
+        "auth.login_title": "Welcome back",
+        "auth.signup_title": "Create an account",
+        "auth.login_subtitle": "Enter your credentials to access your account",
+        "auth.signup_subtitle": "Enter your email to get started",
+        "auth.email": "Email",
+        "auth.password": "Password",
+        "auth.login_button": "Sign In",
+        "auth.signup_button": "Sign Up",
+        "auth.no_account": "Don't have an account?",
+        "auth.have_account": "Already have an account?",
+        "auth.switch_to_signup": "Sign Up",
+        "auth.switch_to_login": "Sign In",
+        "auth.check_email": "Check your email for the confirmation link!",
+        "auth.login_success": "Logged in successfully!"
     },
     zh: {
         "app.title": "宝宝成长助手",
@@ -109,7 +123,21 @@ const translations = {
         "duration.ongoing": "进行中...",
         "duration.label": "时长",
         "sidebar.quick_stat": "快速统计",
-        "sidebar.today": "今日"
+        "sidebar.today": "今日",
+        "auth.login_title": "欢迎回来",
+        "auth.signup_title": "创建账号",
+        "auth.login_subtitle": "输入您的凭据以访问您的账号",
+        "auth.signup_subtitle": "输入您的邮箱以开始",
+        "auth.email": "邮箱",
+        "auth.password": "密码",
+        "auth.login_button": "登录",
+        "auth.signup_button": "注册",
+        "auth.no_account": "还没有账号？",
+        "auth.have_account": "已有账号？",
+        "auth.switch_to_signup": "立即注册",
+        "auth.switch_to_login": "立即登录",
+        "auth.check_email": "请检查您的邮箱以获取确认链接！",
+        "auth.login_success": "登录成功！"
     }
 }
 
