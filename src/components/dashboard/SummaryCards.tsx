@@ -12,15 +12,21 @@ interface Standard {
     sleep: number
 }
 
-export function SummaryCards({ refreshKey, date = new Date(), activities = [] }: { refreshKey: number; date?: Date; activities?: Activity[] }) {
+export function SummaryCards({ refreshKey, date = new Date(), activities = [], user }: { refreshKey: number; date?: Date; activities?: Activity[]; user?: any }) {
     const [standards, setStandards] = useState<Standard>({ milk: 800, sleep: 600 }) // Default 800ml, 10h
     const { t } = useLanguage()
 
     useEffect(() => {
+        if (!user) return
+
         async function fetchConfig() {
-            const { data: configData } = await supabase.from("user_config").select("*")
+            const { data: configData } = await supabase
+                .from("user_config")
+                .select("*")
+                .eq("user_id", user?.id)
+            
             if (configData) {
-                const newStandards = { milk: 800, sleep: 600 } // Start with defaults (10h)
+                const newStandards = { milk: 800, sleep: 600 }
                 configData.forEach(item => {
                     const val = parseFloat(item.value)
                     if (isNaN(val)) return
@@ -32,7 +38,7 @@ export function SummaryCards({ refreshKey, date = new Date(), activities = [] }:
         }
 
         fetchConfig()
-    }, [])
+    }, [user, refreshKey])
 
     const data = useMemo(() => {
         // Get local start and end of day

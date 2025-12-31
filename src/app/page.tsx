@@ -31,7 +31,10 @@ export default function DashboardPage() {
     if (!user) return
 
     async function fetchActivities() {
-      setDataLoading(true)
+      // Only show loading state on initial load to prevent flickering during refreshes
+      if (activities.length === 0) {
+        setDataLoading(true)
+      }
       const now = new Date()
       const startOfDay = new Date(now)
       startOfDay.setHours(0, 0, 0, 0)
@@ -85,7 +88,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
       <header className="flex items-center gap-4">
         <div className="p-3 bg-primary/20 rounded-2xl">
           <LayoutDashboard className="w-8 h-8 text-primary" />
@@ -96,7 +99,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <SummaryCards refreshKey={refreshKey} activities={activities} />
+      <SummaryCards refreshKey={refreshKey} activities={activities} user={user} />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-5 sticky top-8">

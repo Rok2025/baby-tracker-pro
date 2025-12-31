@@ -36,7 +36,10 @@ export default function HistoryPage() {
         if (!user) return
 
         async function fetchActivities() {
-            setDataLoading(true)
+            // Only show loading state on initial load or date change to prevent flickering during refreshes
+            if (activities.length === 0) {
+                setDataLoading(true)
+            }
             const startOfDay = new Date(date)
             startOfDay.setHours(0, 0, 0, 0)
             const endOfDay = new Date(date)
@@ -97,7 +100,7 @@ export default function HistoryPage() {
     }
 
     return (
-        <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight">{t("history.title")}</h2>
@@ -158,7 +161,7 @@ export default function HistoryPage() {
             </header>
 
             {/* Date-Aware Summary */}
-            <SummaryCards refreshKey={refreshKey} date={date} activities={activities} />
+            <SummaryCards refreshKey={refreshKey} date={date} activities={activities} user={user} />
 
             {/* Date-Aware Feed */}
             <ActivityFeed
