@@ -38,7 +38,7 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
         resolver: zodResolver(formSchema),
         defaultValues: {
             type: "feeding",
-            date: new Date().toISOString().split('T')[0],
+            date: new Date().toLocaleDateString('en-CA'),
             startDay: "today",
             startTime: new Date().toLocaleTimeString("it-IT").slice(0, 5),
             note: "",
@@ -92,7 +92,7 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
             toast.success("Activity logged successfully!")
             form.reset({
                 type: activeTab,
-                date: new Date().toISOString().split('T')[0],
+                date: new Date().toLocaleDateString('en-CA'),
                 startDay: "today",
                 startTime: new Date().toLocaleTimeString("it-IT").slice(0, 5),
                 note: "",

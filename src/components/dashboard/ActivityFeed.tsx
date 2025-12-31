@@ -38,6 +38,9 @@ export function ActivityFeed({
     const { t, language } = useLanguage()
 
     async function handleDelete(id: string) {
+        const confirmed = window.confirm(t("common.confirm_delete"))
+        if (!confirmed) return
+
         const { error } = await supabase.from("activities").delete().eq("id", id)
         if (error) {
             toast.error("Failed to delete entry")
@@ -48,10 +51,39 @@ export function ActivityFeed({
     }
 
     async function handleUpdate() {
-        if (!editingActivity) return
+        if (!editingActivity || !editValues.start_time) return
+
+        // 辅助函数：将本地 HH:mm 合并到 ISO 日期中
+        const mergeTimeToDate = (isoDate: string, localTime: string) => {
+            const date = new Date(isoDate)
+            const [hours, minutes] = localTime.split(':').map(Number)
+            date.setHours(hours, minutes, 0, 0)
+            return date.toISOString()
+        }
+
+        const updatedValues: Partial<Activity> = {
+            note: editValues.note,
+            start_time: mergeTimeToDate(editingActivity.start_time, editValues.start_time)
+        }
+
+        if (editingActivity.type === 'feeding') {
+            updatedValues.volume = editValues.volume
+        } else if (editingActivity.type === 'sleep' && editValues.end_time) {
+            // 结束时间的基础日期与开始时间一致
+            updatedValues.end_time = mergeTimeToDate(editingActivity.start_time, editValues.end_time)
+
+            // 处理跨天睡眠逻辑：如果结束时间早于开始时间，视为第二天
+            const start = new Date(updatedValues.start_time!)
+            const end = new Date(updatedValues.end_time!)
+            if (end <= start) {
+                end.setDate(end.getDate() + 1)
+                updatedValues.end_time = end.toISOString()
+            }
+        }
+
         const { error } = await supabase
             .from("activities")
-            .update(editValues)
+            .update(updatedValues)
             .eq("id", editingActivity.id)
 
         if (error) {
@@ -72,7 +104,7 @@ export function ActivityFeed({
                     <CardTitle className="text-base font-semibold flex items-center justify-between">
                         {t("recent.activities")}
                         <span className="text-[10px] font-medium text-muted-foreground bg-background/60 px-2 py-0.5 rounded-full border border-muted">
-                            {date.toLocaleDateString() === new Date().toLocaleDateString() ? t("recent.today") : date.toLocaleDateString()}
+                            {date && date.toLocaleDateString() === new Date().toLocaleDateString() ? t("recent.today") : date?.toLocaleDateString()}
                         </span>
                     </CardTitle>
                 </CardHeader>
@@ -171,18 +203,20 @@ export function ActivityFeed({
                                     </span>
 
                                     {/* 操作按钮 */}
-                                    <div className="flex items-center gap-0 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
+                                    <div className="flex items-center gap-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity ml-auto">
                                         <Button
                                             variant="ghost"
                                             size="icon"
                                             className="h-5 w-5 text-muted-foreground hover:text-primary"
                                             onClick={() => {
+                                                const startLocal = new Date(activity.start_time).toLocaleTimeString("it-IT").slice(0, 5)
+                                                const endLocal = activity.end_time ? new Date(activity.end_time).toLocaleTimeString("it-IT").slice(0, 5) : ""
                                                 setEditingActivity(activity)
                                                 setEditValues({
                                                     volume: activity.volume,
                                                     note: activity.note,
-                                                    start_time: activity.start_time,
-                                                    end_time: activity.end_time
+                                                    start_time: startLocal,
+                                                    end_time: endLocal
                                                 })
                                             }}
                                         >
@@ -203,7 +237,7 @@ export function ActivityFeed({
 
                         return (
                             <div
-                                className="grid grid-cols-3 gap-2 overflow-y-auto scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent"
+                                className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-2 overflow-y-auto scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent"
                                 style={{ maxHeight }}
                             >
                                 {periods.map(({ key, label, icon }) => (
@@ -231,34 +265,83 @@ export function ActivityFeed({
             </Card>
 
             <Dialog open={!!editingActivity} onOpenChange={(open) => !open && setEditingActivity(null)}>
-                <DialogContent>
+                <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                        <DialogTitle>Edit Activity</DialogTitle>
+                        <DialogTitle className="flex items-center gap-2">
+                            {editingActivity?.type === 'feeding' ? <Milk className="w-5 h-5 text-chart-3" /> : <Moon className="w-5 h-5 text-primary" />}
+                            {editingActivity?.type === 'feeding' ? t("form.feeding") : t("form.sleep")} {t("common.edit")}
+                        </DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
-                        {editingActivity?.type === "feeding" && (
+                        <div className="grid gap-2">
+                            <Label className="text-xs font-medium opacity-70">记录类型</Label>
+                            <div className="px-3 py-2 bg-muted/50 rounded-lg text-sm font-medium border border-muted flex items-center gap-2">
+                                <span className={cn(
+                                    "w-2 h-2 rounded-full",
+                                    editingActivity?.type === 'feeding' ? "bg-chart-3" : "bg-primary"
+                                )} />
+                                {editingActivity?.type === 'feeding' ? t("form.feeding") : t("form.sleep")}
+                                <span className="ml-auto text-[10px] text-muted-foreground uppercase tracking-widest">Read Only</span>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">
-                                <Label htmlFor="volume">Volume (ml)</Label>
+                                <Label htmlFor="startTime" className="text-xs font-medium opacity-70">
+                                    {editingActivity?.type === 'feeding' ? "喂奶时间" : t("form.start_time")}
+                                </Label>
                                 <Input
-                                    id="volume"
-                                    type="number"
-                                    value={editValues.volume || ""}
-                                    onChange={(e) => setEditValues({ ...editValues, volume: parseInt(e.target.value) })}
+                                    id="startTime"
+                                    type="time"
+                                    value={editValues.start_time || ""}
+                                    onChange={(e) => setEditValues({ ...editValues, start_time: e.target.value })}
+                                    className="bg-background/50 border-muted focus:border-primary"
                                 />
                             </div>
-                        )}
+
+                            {editingActivity?.type === 'feeding' ? (
+                                <div className="grid gap-2">
+                                    <Label htmlFor="volume" className="text-xs font-medium opacity-70">{t("form.volume")}</Label>
+                                    <Input
+                                        id="volume"
+                                        type="number"
+                                        value={editValues.volume || ""}
+                                        onChange={(e) => setEditValues({ ...editValues, volume: parseInt(e.target.value) })}
+                                        className="bg-background/50 border-muted focus:border-primary"
+                                    />
+                                </div>
+                            ) : (
+                                <div className="grid gap-2">
+                                    <Label htmlFor="endTime" className="text-xs font-medium opacity-70">{t("form.end_time")}</Label>
+                                    <Input
+                                        id="endTime"
+                                        type="time"
+                                        value={editValues.end_time || ""}
+                                        onChange={(e) => setEditValues({ ...editValues, end_time: e.target.value })}
+                                        className="bg-background/50 border-muted focus:border-primary"
+                                    />
+                                </div>
+                            )}
+                        </div>
+
                         <div className="grid gap-2">
-                            <Label htmlFor="note">Note</Label>
+                            <Label htmlFor="note" className="text-xs font-medium opacity-70">{t("form.note")}</Label>
                             <Input
                                 id="note"
                                 value={editValues.note || ""}
                                 onChange={(e) => setEditValues({ ...editValues, note: e.target.value })}
+                                placeholder="添加备注..."
+                                className="bg-background/50 border-muted focus:border-primary"
                             />
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setEditingActivity(null)}>Cancel</Button>
-                        <Button onClick={handleUpdate}>Save Changes</Button>
+                        <Button variant="outline" onClick={() => setEditingActivity(null)} className="h-11">
+                            {t("common.cancel")}
+                        </Button>
+                        <Button onClick={handleUpdate} className="h-11 px-8 shadow-lg shadow-primary/20">
+                            {t("common.save")}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
