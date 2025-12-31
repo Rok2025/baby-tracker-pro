@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed"
 import { SummaryCards } from "@/components/dashboard/SummaryCards"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react"
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Loader2, ImageIcon } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { useLanguage } from "@/components/LanguageProvider"
@@ -15,7 +15,8 @@ import { useAuth } from "@/components/AuthProvider"
 import { supabase, Activity } from "@/lib/supabase"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
-import { Loader2 } from "lucide-react"
+import { toPng } from "html-to-image"
+import { useTheme } from "next-themes"
 
 export default function HistoryPage() {
     const [date, setDate] = useState<Date>(new Date())
@@ -24,7 +25,11 @@ export default function HistoryPage() {
     const [dataLoading, setDataLoading] = useState(true)
     const { t, language } = useLanguage()
     const { user, loading: authLoading } = useAuth()
+    const { theme } = useTheme()
     const router = useRouter()
+
+    const exportRef = useRef<HTMLDivElement>(null)
+    const [exporting, setExporting] = useState(false)
 
     useEffect(() => {
         if (!authLoading && !user) {
@@ -36,7 +41,6 @@ export default function HistoryPage() {
         if (!user) return
 
         async function fetchActivities() {
-            // Only show loading state on initial load or date change to prevent flickering during refreshes
             if (activities.length === 0) {
                 setDataLoading(true)
             }
@@ -48,9 +52,6 @@ export default function HistoryPage() {
             const startStr = startOfDay.toISOString()
             const endStr = endOfDay.toISOString()
 
-            // Faster query using simple overlap logic:
-            // 1. Started today and before end of today
-            // 2. OR started before today but ended today (or still ongoing)
             const { data, error } = await supabase
                 .from("activities")
                 .select("*")
@@ -62,7 +63,6 @@ export default function HistoryPage() {
                 console.error("Fetch error:", error)
                 toast.error("Failed to load historical data")
             } else {
-                // Post-process: final sort and precision filter
                 const processed = (data || [])
                     .filter(act => {
                         const actStart = new Date(act.start_time).getTime()
@@ -72,7 +72,6 @@ export default function HistoryPage() {
                     .sort((a, b) => {
                         const getSortTime = (act: Activity) => {
                             const start = new Date(act.start_time).getTime()
-                            // 如果是跨日睡眠（开始于所选日期之前），使用结束时间排序；否则使用开始时间排序
                             if (act.type === 'sleep' && start < startOfDay.getTime() && act.end_time) {
                                 return new Date(act.end_time).getTime()
                             }
@@ -91,6 +90,35 @@ export default function HistoryPage() {
         fetchActivities()
     }, [date, refreshKey, user])
 
+    const handleExport = async () => {
+        if (!exportRef.current) return
+        setExporting(true)
+
+        // 稍微等待确保 DOM 渲染（虽然在隐藏容器中，但也需要就绪）
+        await new Promise(resolve => setTimeout(resolve, 300))
+
+        try {
+            const isDark = theme === 'dark'
+            const bgColor = isDark ? '#020617' : '#f8fafc'
+
+            const dataUrl = await toPng(exportRef.current, {
+                cacheBust: true,
+                backgroundColor: bgColor,
+                pixelRatio: 2,
+            })
+            const link = document.createElement('a')
+            link.download = `baby-tracker-history-${format(date, 'yyyy-MM-dd')}.png`
+            link.href = dataUrl
+            link.click()
+            toast.success("Image exported successfully!")
+        } catch (err) {
+            console.error("Export error:", err)
+            toast.error("Failed to export image")
+        } finally {
+            setExporting(false)
+        }
+    }
+
     if (authLoading || (!user && !authLoading)) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
@@ -100,7 +128,7 @@ export default function HistoryPage() {
     }
 
     return (
-        <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-4">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-4 relative">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">{t("history.title")}</h2>
@@ -157,20 +185,64 @@ export default function HistoryPage() {
                     >
                         <ChevronRight className="h-5 w-5" />
                     </Button>
+
+                    <Button
+                        variant="default"
+                        className="h-12 px-4 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg gap-2 active:scale-95 transition-transform"
+                        onClick={handleExport}
+                        disabled={exporting}
+                    >
+                        {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+                        <span className="hidden md:inline">{t("history.export")}</span>
+                    </Button>
                 </div>
             </header>
 
-            {/* Date-Aware Summary */}
-            <SummaryCards refreshKey={refreshKey} date={date} activities={activities} user={user} />
+            {/* 正常显示的区域：保持稳定，不随导出状态变化 */}
+            <div className="space-y-4 p-1">
+                <SummaryCards refreshKey={refreshKey} date={date} activities={activities} user={user} />
+                <ActivityFeed
+                    refreshKey={refreshKey}
+                    onUpdate={() => setRefreshKey(k => k + 1)}
+                    date={date}
+                    activities={activities}
+                    loading={dataLoading}
+                />
+            </div>
 
-            {/* Date-Aware Feed */}
-            <ActivityFeed
-                refreshKey={refreshKey}
-                onUpdate={() => setRefreshKey(k => k + 1)}
-                date={date}
-                activities={activities}
-                loading={dataLoading}
-            />
+            {/* 隐藏的导出专用区域：仅在导出时通过 ref 捕获，不影响页面布局 */}
+            <div className="absolute left-[-9999px] top-0 pointer-events-none">
+                <div
+                    ref={exportRef}
+                    className={cn(
+                        "w-[800px] p-10 space-y-6",
+                        theme === 'dark' ? "text-slate-50" : "text-slate-950"
+                    )}
+                >
+                    {/* 导出区域顶部的日期标识 (品牌感+记录日期) */}
+                    <div className="flex items-center justify-between mb-2 px-2">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center">
+                                <span className="text-primary text-lg font-bold">Y</span>
+                            </div>
+                            <span className="text-sm font-bold opacity-40 tracking-wider">BabyTracker Pro</span>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest opacity-50">{language === 'zh' ? '记录日期' : 'RECORD DATE'}</p>
+                            <p className="text-sm font-bold text-primary">{format(date, language === "zh" ? "yyyy年MM月dd日" : "MMMM dd, yyyy")}</p>
+                        </div>
+                    </div>
+
+                    <SummaryCards refreshKey={refreshKey} date={date} activities={activities} user={user} />
+                    <ActivityFeed
+                        refreshKey={refreshKey}
+                        onUpdate={() => { }} // 导出视图不需要更新回调
+                        date={date}
+                        activities={activities}
+                        loading={dataLoading}
+                    />
+                </div>
+            </div>
         </div>
     )
 }
