@@ -12,7 +12,7 @@ interface Standard {
     sleep: number
 }
 
-export function SummaryCards({ refreshKey, date = new Date(), activities = [], user }: { refreshKey: number; date?: Date; activities?: Activity[]; user?: any }) {
+export function SummaryCards({ refreshKey, date = new Date(), activities = [], user, forceSingleColumn = false, isExporting = false }: { refreshKey: number; date?: Date; activities?: Activity[]; user?: any, forceSingleColumn?: boolean, isExporting?: boolean }) {
     const [standards, setStandards] = useState<Standard>({ milk: 800, sleep: 600 }) // Default 800ml, 10h
     const { t } = useLanguage()
 
@@ -82,27 +82,47 @@ export function SummaryCards({ refreshKey, date = new Date(), activities = [], u
     const sleepColor = roundedSleepMinutes >= standards.sleep ? "text-primary bg-primary/10" : "text-destructive bg-destructive/10"
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <Card className={`border-none shadow-2xl transition-all duration-500 overflow-hidden bg-card/60 backdrop-blur-xl ${milkColor}`}>
-                <CardContent className="p-4 flex items-center justify-between">
-                    <div className="space-y-0.5">
-                        <p className="text-xs font-medium opacity-80 uppercase tracking-wider">{t("summary.milk")}</p>
-                        <div className="flex items-baseline gap-1.5">
-                            <span className={cn(
-                                "font-extrabold transition-all tabular-nums drop-shadow-sm",
-                                data.totalVolume > 999 ? "text-3xl" : "text-4xl"
-                            )}>{data.totalVolume}</span>
-                            <span className="text-lg opacity-50 font-light">/</span>
-                            <span className="text-lg opacity-50 font-medium tabular-nums">{standards.milk}</span>
-                            <span className="text-base opacity-80 uppercase font-semibold">ml</span>
+        <div className={cn(
+            "grid gap-4 mb-4",
+            forceSingleColumn ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2",
+            isExporting && "grid-cols-2 gap-2 mb-2"
+        )}>
+            <Card className={cn(
+                "border-none shadow-2xl transition-all duration-500 overflow-hidden bg-card/60 backdrop-blur-xl flex flex-col",
+                milkColor,
+                isExporting && "shadow-sm rounded-lg h-full"
+            )}>
+                <CardContent className={cn("p-4 flex items-center justify-between flex-1", isExporting && "p-2 px-3")}>
+                    <div className="space-y-0 min-w-0">
+                        <p className={cn("text-xs font-medium opacity-80 uppercase tracking-wider", isExporting && "text-[8px] font-bold opacity-50")}>{t("summary.milk")}</p>
+                        <div className="flex flex-col">
+                            <div className="flex items-baseline gap-0.5">
+                                <span className={cn(
+                                    "font-extrabold transition-all tabular-nums drop-shadow-sm truncate tracking-tighter",
+                                    isExporting ? "text-2xl" : (data.totalVolume > 999 ? "text-3xl" : "text-4xl")
+                                )}>{data.totalVolume}</span>
+                                {!isExporting && (
+                                    <>
+                                        <span className="text-lg opacity-50 font-light">/</span>
+                                        <span className="text-lg opacity-50 font-medium tabular-nums">{standards.milk}</span>
+                                        <span className="text-base opacity-80 uppercase font-semibold">ml</span>
+                                    </>
+                                )}
+                            </div>
+                            {isExporting && (
+                                <div className="flex items-baseline opacity-30 font-bold -mt-1 scale-90 origin-left">
+                                    <span className="text-[10px]">/</span>
+                                    <span className="text-[10px] tabular-nums">{standards.milk}</span>
+                                    <span className="text-[8px] uppercase ml-0.5">ml</span>
+                                </div>
+                            )}
                         </div>
                     </div>
-                    <div className="p-2 bg-white/20 dark:bg-black/20 rounded-xl">
-                        <Milk className="w-7 h-7" />
+                    <div className={cn("p-2 bg-white/20 dark:bg-black/20 rounded-xl shrink-0", isExporting && "p-0 bg-transparent opacity-20")}>
+                        <Milk className={cn("w-7 h-7", isExporting && "w-6 h-6")} />
                     </div>
                 </CardContent>
-                {/* Simple Progress Indicator */}
-                <div className="h-1.5 bg-black/5 dark:bg-white/5 w-full">
+                <div className={cn("h-1.5 bg-black/5 dark:bg-white/5 w-full mt-auto", isExporting && "h-1")}>
                     <div
                         className="h-full bg-current transition-all duration-1000"
                         style={{ width: `${Math.min((data.totalVolume / standards.milk) * 100, 100)}%` }}
@@ -110,26 +130,42 @@ export function SummaryCards({ refreshKey, date = new Date(), activities = [], u
                 </div>
             </Card>
 
-            <Card className={`border-none shadow-2xl transition-all duration-500 overflow-hidden bg-card/60 backdrop-blur-xl ${sleepColor}`}>
-                <CardContent className="p-4 flex items-center justify-between">
-                    <div className="space-y-0.5">
-                        <p className="text-xs font-medium opacity-80 uppercase tracking-wider">{t("summary.sleep")}</p>
-                        <div className="flex items-baseline gap-1.5">
-                            <span className={cn(
-                                "font-extrabold transition-all tabular-nums drop-shadow-sm",
-                                (sleepHours.toString().length + sleepMins.toString().length) > 3 ? "text-3xl" : "text-4xl"
-                            )}>
-                                {sleepHours}{t("duration.hours")}{sleepMins}{t("duration.mins")}
-                            </span>
-                            <span className="text-lg opacity-50 font-light">/</span>
-                            <span className="text-lg opacity-50 font-medium">{standards.sleep / 60}{t("duration.hours")}</span>
+            <Card className={cn(
+                "border-none shadow-2xl transition-all duration-500 overflow-hidden bg-card/60 backdrop-blur-xl flex flex-col",
+                sleepColor,
+                isExporting && "shadow-sm rounded-lg h-full"
+            )}>
+                <CardContent className={cn("p-4 flex items-center justify-between flex-1", isExporting && "p-2 px-3")}>
+                    <div className="space-y-0 min-w-0">
+                        <p className={cn("text-xs font-medium opacity-80 uppercase tracking-wider", isExporting && "text-[8px] font-bold opacity-50")}>{t("summary.sleep")}</p>
+                        <div className="flex flex-col">
+                            <div className="flex items-baseline gap-0.5">
+                                <span className={cn(
+                                    "font-extrabold transition-all tabular-nums drop-shadow-sm whitespace-nowrap tracking-tighter",
+                                    isExporting ? "text-2xl" : ((sleepHours.toString().length + sleepMins.toString().length) > 3 ? "text-3xl" : "text-4xl")
+                                )}>
+                                    {sleepHours}{t("duration.hours")}{sleepMins}{t("duration.mins")}
+                                </span>
+                                {!isExporting && (
+                                    <>
+                                        <span className="text-lg opacity-50 font-light">/</span>
+                                        <span className="text-lg opacity-50 font-medium">{standards.sleep / 60}{t("duration.hours")}</span>
+                                    </>
+                                )}
+                            </div>
+                            {isExporting && (
+                                <div className="flex items-baseline opacity-30 font-bold -mt-1 scale-90 origin-left">
+                                    <span className="text-[10px]">/</span>
+                                    <span className="text-[10px] whitespace-nowrap">{standards.sleep / 60}{t("duration.hours")}</span>
+                                </div>
+                            )}
                         </div>
                     </div>
-                    <div className="p-2 bg-white/20 dark:bg-black/20 rounded-xl">
-                        <Moon className="w-7 h-7" />
+                    <div className={cn("p-2 bg-white/20 dark:bg-black/20 rounded-xl shrink-0", isExporting && "p-0 bg-transparent opacity-20")}>
+                        <Moon className={cn("w-7 h-7", isExporting && "w-6 h-6")} />
                     </div>
                 </CardContent>
-                <div className="h-1.5 bg-black/5 dark:bg-white/5 w-full">
+                <div className={cn("h-1.5 bg-black/5 dark:bg-white/5 w-full mt-auto", isExporting && "h-1")}>
                     <div
                         className="h-full bg-current transition-all duration-1000"
                         style={{ width: `${Math.min((roundedSleepMinutes / standards.sleep) * 100, 100)}%` }}

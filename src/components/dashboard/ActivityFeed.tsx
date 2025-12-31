@@ -24,14 +24,18 @@ export function ActivityFeed({
     date = new Date(),
     activities = [],
     loading = false,
-    maxHeight = "400px"
+    maxHeight = "400px",
+    forceSingleColumn = false,
+    isExporting = false
 }: {
     refreshKey: number,
     onUpdate: () => void,
     date?: Date,
     activities?: Activity[],
     loading?: boolean,
-    maxHeight?: string
+    maxHeight?: string,
+    forceSingleColumn?: boolean,
+    isExporting?: boolean
 }) {
     const [editingActivity, setEditingActivity] = useState<Activity | null>(null)
     const [editValues, setEditValues] = useState<Partial<Activity>>({})
@@ -106,9 +110,12 @@ export function ActivityFeed({
         <>
             <Card className="border-none shadow-2xl bg-card/60 backdrop-blur-xl overflow-hidden w-full flex flex-col">
                 <CardHeader className="pb-0 pt-2 px-6">
-                    <CardTitle className="text-base font-semibold flex items-center justify-between">
+                    <CardTitle className={cn("text-base font-semibold flex items-center justify-between", isExporting && "text-xl pt-2")}>
                         {t("recent.activities")}
-                        <span className="text-[10px] font-medium text-muted-foreground bg-background/60 px-2 py-0.5 rounded-full border border-muted">
+                        <span className={cn(
+                            "text-[10px] font-medium text-muted-foreground bg-background/60 px-2 py-0.5 rounded-full border border-muted",
+                            isExporting && "text-sm px-3 py-1"
+                        )}>
                             {date && date.toLocaleDateString() === new Date().toLocaleDateString() ? t("recent.today") : date?.toLocaleDateString()}
                         </span>
                     </CardTitle>
@@ -167,20 +174,25 @@ export function ActivityFeed({
                                     key={activity.id}
                                     className={cn(
                                         "group flex items-center gap-2 px-2 py-1.5 rounded transition-all duration-200",
-                                        isSleep ? "hover:bg-primary/10" : "hover:bg-chart-3/10"
+                                        isSleep ? "hover:bg-primary/10" : "hover:bg-chart-3/10",
+                                        isExporting && "gap-3 py-2 px-3 rounded-lg mb-1 bg-slate-500/5 dark:bg-slate-400/5"
                                     )}
                                 >
                                     {/* 图标 */}
                                     <div className={cn(
                                         "p-1.5 rounded shrink-0 transition-all duration-500",
                                         isSleep ? "bg-primary/20 text-primary" : "bg-chart-3/20 text-chart-3",
-                                        isSleep && !activity.end_time && "animate-pulse bg-primary/40 shadow-[0_0_12px_rgba(var(--primary),0.4)]"
+                                        isSleep && !activity.end_time && "animate-pulse bg-primary/40 shadow-[0_0_12px_rgba(var(--primary),0.4)]",
+                                        isExporting && "p-1.5 rounded-md"
                                     )}>
-                                        {isSleep ? <Moon className={cn("w-3.5 h-3.5", isSleep && !activity.end_time && "animate-spin-slow")} /> : <Milk className="w-3.5 h-3.5" />}
+                                        {isSleep ? <Moon className={cn("w-3.5 h-3.5", isSleep && !activity.end_time && "animate-spin-slow", isExporting && "w-4 h-4")} /> : <Milk className={cn("w-3.5 h-3.5", isExporting && "w-4 h-4")} />}
                                     </div>
 
                                     {/* 时间 */}
-                                    <span className="text-xs text-muted-foreground font-medium tabular-nums min-w-[85px] shrink-0">
+                                    <span className={cn(
+                                        "text-xs text-muted-foreground font-medium tabular-nums min-w-[85px] shrink-0",
+                                        isExporting && "text-sm font-bold min-w-[95px] text-foreground"
+                                    )}>
                                         {(() => {
                                             const start = formatTime(activity.start_time)
                                             if (isSleep) {
@@ -199,7 +211,8 @@ export function ActivityFeed({
                                         "font-bold text-[10px] px-1.5 py-0.5 rounded text-right min-w-[56px] shrink-0 transition-colors",
                                         isSleep
                                             ? (activity.end_time ? "text-primary bg-primary/10" : "text-primary bg-primary/30 animate-pulse border border-primary/20")
-                                            : "text-chart-3 bg-chart-3/10"
+                                            : "text-chart-3 bg-chart-3/10",
+                                        isExporting && "text-[11px] px-2 py-0.5 min-w-[65px] rounded-md shadow-sm"
                                     )}>
                                         {isSleep ? (
                                             activity.end_time ? (() => {
@@ -213,58 +226,64 @@ export function ActivityFeed({
                                         )}
                                     </span>
 
-                                    {/* 操作按钮 */}
-                                    <div className="flex items-center gap-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity ml-auto">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-5 w-5 text-muted-foreground hover:text-primary"
-                                            onClick={() => {
-                                                const startLocal = new Date(activity.start_time).toLocaleTimeString("it-IT").slice(0, 5)
-                                                const endLocal = activity.end_time ? new Date(activity.end_time).toLocaleTimeString("it-IT").slice(0, 5) : ""
-                                                setEditingActivity(activity)
-                                                setEditValues({
-                                                    volume: activity.volume,
-                                                    note: activity.note,
-                                                    start_time: startLocal,
-                                                    end_time: endLocal
-                                                })
-                                            }}
-                                        >
-                                            <Edit2 className="w-2.5 h-2.5" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-5 w-5 text-muted-foreground hover:text-destructive"
-                                            onClick={() => handleDelete(activity.id)}
-                                        >
-                                            <Trash2 className="w-2.5 h-2.5" />
-                                        </Button>
-                                    </div>
+                                    {/* 操作按钮 - 导出时隐藏 */}
+                                    {!isExporting && (
+                                        <div className="flex items-center gap-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity ml-auto">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-5 w-5 text-muted-foreground hover:text-primary"
+                                                onClick={() => {
+                                                    const startLocal = new Date(activity.start_time).toLocaleTimeString("it-IT").slice(0, 5)
+                                                    const endLocal = activity.end_time ? new Date(activity.end_time).toLocaleTimeString("it-IT").slice(0, 5) : ""
+                                                    setEditingActivity(activity)
+                                                    setEditValues({
+                                                        volume: activity.volume,
+                                                        note: activity.note,
+                                                        start_time: startLocal,
+                                                        end_time: endLocal
+                                                    })
+                                                }}
+                                            >
+                                                <Edit2 className="w-2.5 h-2.5" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-5 w-5 text-muted-foreground hover:text-destructive"
+                                                onClick={() => handleDelete(activity.id)}
+                                            >
+                                                <Trash2 className="w-2.5 h-2.5" />
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
                             )
                         }
 
                         return (
                             <div
-                                className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-2 overflow-y-auto scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent"
+                                className={cn(
+                                    "gap-6 md:gap-2 overflow-y-auto scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent",
+                                    forceSingleColumn ? "flex flex-col" : "grid grid-cols-1 md:grid-cols-3",
+                                    isExporting && "gap-8 pb-4"
+                                )}
                                 style={{ maxHeight }}
                             >
                                 {periods.map(({ key, label, icon }) => (
                                     <div key={key} className="min-w-0">
                                         {/* 时段标题 */}
-                                        <div className="flex items-center gap-1 px-1.5 py-1 mb-1 border-b border-muted/30">
-                                            <span className="text-xs">{icon}</span>
-                                            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">{label}</span>
+                                        <div className={cn("flex items-center gap-1 px-1.5 py-1 mb-1 border-b border-muted/30", isExporting && "py-2 mb-2 border-muted/50")}>
+                                            <span className={cn("text-xs", isExporting && "text-sm")}>{icon}</span>
+                                            <span className={cn("text-[10px] font-semibold text-muted-foreground uppercase tracking-wide", isExporting && "text-xs font-bold")}>{label}</span>
                                             {grouped[key] && (
-                                                <span className="text-[9px] text-muted-foreground/60 ml-auto">{grouped[key].length}</span>
+                                                <span className={cn("text-[9px] text-muted-foreground/60 ml-auto", isExporting && "text-[10px]")}>{grouped[key].length}</span>
                                             )}
                                         </div>
                                         {/* 活动列表 */}
-                                        <div className="space-y-0.5">
+                                        <div className={cn("space-y-0.5", isExporting && "space-y-1")}>
                                             {grouped[key]?.map(renderActivity) || (
-                                                <div className="text-[10px] text-muted-foreground/50 italic px-1.5 py-2 text-center">-</div>
+                                                <div className={cn("text-[10px] text-muted-foreground/50 italic px-1.5 py-2 text-center", isExporting && "text-xs")}>-</div>
                                             )}
                                         </div>
                                     </div>

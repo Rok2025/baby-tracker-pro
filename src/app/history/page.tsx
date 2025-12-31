@@ -29,7 +29,7 @@ export default function HistoryPage() {
     const router = useRouter()
 
     const exportRef = useRef<HTMLDivElement>(null)
-    const [exporting, setExporting] = useState(false)
+    const [exportingMode, setExportingMode] = useState<'desktop' | 'mobile' | null>(null)
 
     useEffect(() => {
         if (!authLoading && !user) {
@@ -90,11 +90,11 @@ export default function HistoryPage() {
         fetchActivities()
     }, [date, refreshKey, user])
 
-    const handleExport = async () => {
+    const handleExport = async (mode: 'desktop' | 'mobile') => {
         if (!exportRef.current) return
-        setExporting(true)
+        setExportingMode(mode)
 
-        // 稍微等待确保 DOM 渲染（虽然在隐藏容器中，但也需要就绪）
+        // 等待足够时间以确保 React 完成 DOM 状态更新
         await new Promise(resolve => setTimeout(resolve, 300))
 
         try {
@@ -107,15 +107,15 @@ export default function HistoryPage() {
                 pixelRatio: 2,
             })
             const link = document.createElement('a')
-            link.download = `baby-tracker-history-${format(date, 'yyyy-MM-dd')}.png`
+            link.download = `baby-tracker-${mode === 'mobile' ? 'mobile-' : ''}history-${format(date, 'yyyy-MM-dd')}.png`
             link.href = dataUrl
             link.click()
-            toast.success("Image exported successfully!")
+            toast.success(`${mode === 'mobile' ? 'Mobile' : 'Desktop'} image exported successfully!`)
         } catch (err) {
             console.error("Export error:", err)
             toast.error("Failed to export image")
         } finally {
-            setExporting(false)
+            setExportingMode(null)
         }
     }
 
@@ -186,15 +186,40 @@ export default function HistoryPage() {
                         <ChevronRight className="h-5 w-5" />
                     </Button>
 
-                    <Button
-                        variant="default"
-                        className="h-12 px-4 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg gap-2 active:scale-95 transition-transform"
-                        onClick={handleExport}
-                        disabled={exporting}
-                    >
-                        {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
-                        <span className="hidden md:inline">{t("history.export")}</span>
-                    </Button>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="default"
+                                className="h-12 px-4 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg gap-2 active:scale-95 transition-transform"
+                                disabled={!!exportingMode}
+                            >
+                                {exportingMode ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+                                <span className="hidden md:inline">{t("history.export")}</span>
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-48 p-2 rounded-2xl border-muted shadow-2xl bg-card/95 backdrop-blur-xl space-y-1" align="end">
+                            <Button
+                                variant="ghost"
+                                className="w-full justify-start gap-2 rounded-xl px-3"
+                                onClick={() => handleExport('desktop')}
+                            >
+                                <div className="p-1 rounded-md bg-primary/10 text-primary">
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8" /><path d="M12 17v4" /></svg>
+                                </div>
+                                <span className="text-sm font-medium">{language === 'zh' ? '导出电脑图片' : 'Desktop Export'}</span>
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                className="w-full justify-start gap-2 rounded-xl px-3"
+                                onClick={() => handleExport('mobile')}
+                            >
+                                <div className="p-1 rounded-md bg-primary/10 text-primary">
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2" /><path d="M12 18h.01" /></svg>
+                                </div>
+                                <span className="text-sm font-medium">{language === 'zh' ? '导出手机图片' : 'Mobile Export'}</span>
+                            </Button>
+                        </PopoverContent>
+                    </Popover>
                 </div>
             </header>
 
@@ -215,7 +240,8 @@ export default function HistoryPage() {
                 <div
                     ref={exportRef}
                     className={cn(
-                        "w-[800px] p-10 space-y-6",
+                        "transition-all",
+                        exportingMode === 'mobile' ? "w-[450px] p-6 space-y-6" : "w-[800px] p-10 space-y-6",
                         theme === 'dark' ? "text-slate-50" : "text-slate-950"
                     )}
                 >
@@ -233,13 +259,23 @@ export default function HistoryPage() {
                         </div>
                     </div>
 
-                    <SummaryCards refreshKey={refreshKey} date={date} activities={activities} user={user} />
+                    <SummaryCards
+                        refreshKey={refreshKey}
+                        date={date}
+                        activities={activities}
+                        user={user}
+                        forceSingleColumn={false}
+                        isExporting={true}
+                    />
                     <ActivityFeed
                         refreshKey={refreshKey}
                         onUpdate={() => { }} // 导出视图不需要更新回调
                         date={date}
                         activities={activities}
                         loading={dataLoading}
+                        forceSingleColumn={exportingMode === 'mobile'}
+                        maxHeight="none"
+                        isExporting={true}
                     />
                 </div>
             </div>
