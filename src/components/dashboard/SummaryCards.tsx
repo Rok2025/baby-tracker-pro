@@ -24,7 +24,7 @@ export function SummaryCards({ refreshKey, date = new Date(), activities = [], u
                 .from("user_config")
                 .select("*")
                 .eq("user_id", user?.id)
-            
+
             if (configData) {
                 const newStandards = { milk: 800, sleep: 600 }
                 configData.forEach(item => {
@@ -82,22 +82,23 @@ export function SummaryCards({ refreshKey, date = new Date(), activities = [], u
     const sleepColor = roundedSleepMinutes >= standards.sleep ? "text-primary bg-primary/10" : "text-destructive bg-destructive/10"
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <Card className={`border-none shadow-2xl transition-all duration-500 overflow-hidden bg-card/60 backdrop-blur-xl ${milkColor}`}>
-                <CardContent className="p-6 flex items-center justify-between">
-                    <div className="space-y-1">
-                        <p className="text-sm font-medium opacity-80 uppercase tracking-wider">{t("summary.milk")}</p>
-                        <div className="flex items-baseline gap-1">
+                <CardContent className="p-4 flex items-center justify-between">
+                    <div className="space-y-0.5">
+                        <p className="text-xs font-medium opacity-80 uppercase tracking-wider">{t("summary.milk")}</p>
+                        <div className="flex items-baseline gap-1.5">
                             <span className={cn(
-                                "font-bold transition-all tabular-nums",
+                                "font-extrabold transition-all tabular-nums drop-shadow-sm",
                                 data.totalVolume > 999 ? "text-3xl" : "text-4xl"
                             )}>{data.totalVolume}</span>
-                            <span className="text-lg opacity-80 uppercase font-medium">ml</span>
+                            <span className="text-lg opacity-50 font-light">/</span>
+                            <span className="text-lg opacity-50 font-medium tabular-nums">{standards.milk}</span>
+                            <span className="text-base opacity-80 uppercase font-semibold">ml</span>
                         </div>
-                        <p className="text-xs opacity-60">{t("summary.target")}: {standards.milk}ml</p>
                     </div>
-                    <div className="p-3 bg-white/20 dark:bg-black/20 rounded-2xl">
-                        <Milk className="w-10 h-10" />
+                    <div className="p-2 bg-white/20 dark:bg-black/20 rounded-xl">
+                        <Milk className="w-7 h-7" />
                     </div>
                 </CardContent>
                 {/* Simple Progress Indicator */}
@@ -110,21 +111,22 @@ export function SummaryCards({ refreshKey, date = new Date(), activities = [], u
             </Card>
 
             <Card className={`border-none shadow-2xl transition-all duration-500 overflow-hidden bg-card/60 backdrop-blur-xl ${sleepColor}`}>
-                <CardContent className="p-6 flex items-center justify-between">
-                    <div className="space-y-1">
-                        <p className="text-sm font-medium opacity-80 uppercase tracking-wider">{t("summary.sleep")}</p>
-                        <div className="flex items-baseline gap-1">
+                <CardContent className="p-4 flex items-center justify-between">
+                    <div className="space-y-0.5">
+                        <p className="text-xs font-medium opacity-80 uppercase tracking-wider">{t("summary.sleep")}</p>
+                        <div className="flex items-baseline gap-1.5">
                             <span className={cn(
-                                "font-bold transition-all tabular-nums",
+                                "font-extrabold transition-all tabular-nums drop-shadow-sm",
                                 (sleepHours.toString().length + sleepMins.toString().length) > 3 ? "text-3xl" : "text-4xl"
                             )}>
-                                {sleepHours}{t("duration.hours")} {sleepMins}{t("duration.mins")}
+                                {sleepHours}{t("duration.hours")}{sleepMins}{t("duration.mins")}
                             </span>
+                            <span className="text-lg opacity-50 font-light">/</span>
+                            <span className="text-lg opacity-50 font-medium">{standards.sleep / 60}{t("duration.hours")}</span>
                         </div>
-                        <p className="text-xs opacity-60">{t("summary.target")}: {standards.sleep / 60}{t("duration.hours")}</p>
                     </div>
-                    <div className="p-3 bg-white/20 dark:bg-black/20 rounded-2xl">
-                        <Moon className="w-10 h-10" />
+                    <div className="p-2 bg-white/20 dark:bg-black/20 rounded-xl">
+                        <Moon className="w-7 h-7" />
                     </div>
                 </CardContent>
                 <div className="h-1.5 bg-black/5 dark:bg-white/5 w-full">

@@ -18,10 +18,12 @@ import { ThemeToggle } from "@/components/ThemeToggle"
 export default function SettingsPage() {
     const [milkTarget, setMilkTarget] = useState(800)
     const [sleepTarget, setSleepTarget] = useState(10)
+    const [babyBirthDate, setBabyBirthDate] = useState('')
+    const [babyName, setBabyName] = useState('')
     const [dataLoading, setDataLoading] = useState(false)
     const [migrating, setMigrating] = useState(false)
     const { t } = useLanguage()
-    const { fontSize, setFontSize } = useConfiguration()
+    const { fontSize, setFontSize, bgOpacity, setBgOpacity } = useConfiguration()
     const { user, loading: authLoading } = useAuth()
     const router = useRouter()
 
@@ -43,6 +45,8 @@ export default function SettingsPage() {
                 data.forEach(item => {
                     if (item.key === "target_milk_ml") setMilkTarget(parseFloat(item.value))
                     if (item.key === "target_sleep_hours") setSleepTarget(parseFloat(item.value))
+                    if (item.key === "baby_birth_date") setBabyBirthDate(item.value)
+                    if (item.key === "baby_name") setBabyName(item.value)
                 })
             }
         }
@@ -67,7 +71,7 @@ export default function SettingsPage() {
                 .update({ user_id: user?.id })
                 .is("user_id", null)
                 .select()
-            
+
             if (actError) throw actError
             const actCount = actData?.length || 0
 
@@ -77,7 +81,7 @@ export default function SettingsPage() {
                 .update({ user_id: user?.id })
                 .is("user_id", null)
                 .select()
-            
+
             if (confError) throw confError
             const confCount = confData?.length || 0
 
@@ -96,7 +100,9 @@ export default function SettingsPage() {
         try {
             await supabase.from("user_config").upsert([
                 { user_id: user.id, key: "target_milk_ml", value: milkTarget.toString() },
-                { user_id: user.id, key: "target_sleep_hours", value: sleepTarget.toString() }
+                { user_id: user.id, key: "target_sleep_hours", value: sleepTarget.toString() },
+                { user_id: user.id, key: "baby_name", value: babyName },
+                { user_id: user.id, key: "baby_birth_date", value: babyBirthDate }
             ], { onConflict: "user_id,key" })
             toast.success("Settings saved successfully!")
         } catch (err) {
@@ -154,6 +160,31 @@ export default function SettingsPage() {
                             <p className="text-xs text-muted-foreground italic">{t("settings.sleep_standard")}</p>
                         </div>
 
+                        <div className="space-y-2">
+                            <Label htmlFor="babyName" className="text-sm font-medium opacity-80">宝宝名字</Label>
+                            <Input
+                                id="babyName"
+                                type="text"
+                                placeholder="例如：小宝、悦悦"
+                                value={babyName}
+                                onChange={(e) => setBabyName(e.target.value)}
+                                className="bg-background/50 border-muted focus:border-primary transition-colors"
+                            />
+                            <p className="text-xs text-muted-foreground italic">设置后将在仪表盘显示宝宝的名字</p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="birthDate" className="text-sm font-medium opacity-80">宝宝出生日期</Label>
+                            <Input
+                                id="birthDate"
+                                type="date"
+                                value={babyBirthDate}
+                                onChange={(e) => setBabyBirthDate(e.target.value)}
+                                className="bg-background/50 border-muted focus:border-primary transition-colors"
+                            />
+                            <p className="text-xs text-muted-foreground italic">设置后将在仪表盘显示宝宝多少天了</p>
+                        </div>
+
                         <Button onClick={handleSave} className="w-full h-12 gap-2 font-semibold shadow-lg shadow-primary/20" disabled={dataLoading}>
                             {dataLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                             {dataLoading ? "..." : t("settings.save")}
@@ -199,6 +230,27 @@ export default function SettingsPage() {
                                 <ThemeToggle />
                             </div>
                         </div>
+
+                        <div className="space-y-4 pt-4 border-t border-muted/50">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <Label className="text-sm font-medium opacity-80">背景图透明度</Label>
+                                    <p className="text-xs text-muted-foreground">调整全局背景照片的深浅（0 - 20%）</p>
+                                </div>
+                                <span className="text-sm font-bold text-primary bg-primary/10 px-2 py-1 rounded-lg">
+                                    {Math.round(bgOpacity * 100)}%
+                                </span>
+                            </div>
+                            <input
+                                type="range"
+                                min="0"
+                                max="0.2"
+                                step="0.01"
+                                value={bgOpacity}
+                                onChange={(e) => setBgOpacity(parseFloat(e.target.value))}
+                                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                            />
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -213,9 +265,9 @@ export default function SettingsPage() {
                         <p className="text-sm text-red-700">
                             如果你在登录前有记录过数据，点击下方按钮将所有“匿名数据”归属到你当前的账户下。
                         </p>
-                        <Button 
-                            variant="destructive" 
-                            className="w-full" 
+                        <Button
+                            variant="destructive"
+                            className="w-full"
                             onClick={handleMigrate}
                             disabled={migrating}
                         >

@@ -52,14 +52,14 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
         try {
             const [year, month, day] = values.date.split("-").map(Number)
             const [sh, sm] = values.startTime.split(":").map(Number)
-            
+
             const startDate = new Date(year, month - 1, day, sh, sm)
-            
+
             // 根据切换按钮调整开始日期
             if (values.startDay === "yesterday") {
                 startDate.setDate(startDate.getDate() - 1)
             }
-            
+
             const startDateTime = startDate.toISOString()
 
             let endDateTime = null
@@ -68,7 +68,7 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
                 // 结束时间的基础日期与开始时间调整后的日期一致
                 const endDate = new Date(startDate.getTime())
                 endDate.setHours(eh, em, 0, 0)
-                
+
                 // 如果结束时间早于开始时间，自动视为第二天
                 if (endDate <= startDate) {
                     endDate.setDate(endDate.getDate() + 1)
@@ -109,24 +109,24 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
     }
 
     return (
-        <Card className="border-none shadow-2xl bg-card/60 backdrop-blur-xl">
-            <CardHeader className="pb-4">
-                <CardTitle className="text-xl font-semibold flex items-center gap-2">
+        <Card className="border-none shadow-2xl bg-card/60 backdrop-blur-xl w-full flex flex-col">
+            <CardHeader className="pb-0 pt-2">
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
                     <Plus className="w-5 h-5 text-primary" />
                     {t("form.quick_event")}
                 </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0 flex-1">
                 <Tabs defaultValue="feeding" onValueChange={(v) => {
                     const type = v as "feeding" | "sleep"
                     setActiveTab(type)
                     form.setValue("type", type)
                 }}>
-                    <TabsList className="grid w-full grid-cols-2 mb-6 bg-background/50 p-1 border border-muted h-12">
-                        <TabsTrigger value="feeding" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">
+                    <TabsList className="grid w-full grid-cols-2 mb-3 bg-muted/50 p-1 border border-muted h-10">
+                        <TabsTrigger value="feeding" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30 transition-all text-sm">
                             <Milk className="w-4 h-4 mr-2" /> {t("form.feeding")}
                         </TabsTrigger>
-                        <TabsTrigger value="sleep" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all">
+                        <TabsTrigger value="sleep" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30 transition-all text-sm">
                             <Moon className="w-4 h-4 mr-2" /> {t("form.sleep")}
                         </TabsTrigger>
                     </TabsList>
@@ -138,7 +138,7 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
                                 name="date"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-sm font-medium opacity-80">记录日期</FormLabel>
+                                        <FormLabel className="text-xs font-medium opacity-80">记录日期</FormLabel>
                                         <FormControl>
                                             <Input type="date" {...field} className="bg-background/50 border-muted focus:border-primary transition-colors h-11" />
                                         </FormControl>
@@ -154,7 +154,7 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
                                     render={({ field }) => (
                                         <FormItem>
                                             <div className="flex items-center gap-2 mb-1">
-                                                <FormLabel className="text-sm font-medium opacity-80 mb-0">{t("form.start_time")}</FormLabel>
+                                                <FormLabel className="text-xs font-medium opacity-80 mb-0">{t("form.start_time")}</FormLabel>
                                                 <FormField
                                                     control={form.control}
                                                     name="startDay"
@@ -165,8 +165,8 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
                                                                 onClick={() => dayField.onChange("yesterday")}
                                                                 className={cn(
                                                                     "px-2 py-0.5 rounded-md text-[9px] font-bold transition-all",
-                                                                    dayField.value === "yesterday" 
-                                                                        ? "bg-orange-500/10 text-orange-600" 
+                                                                    dayField.value === "yesterday"
+                                                                        ? "bg-orange-500/10 text-orange-600"
                                                                         : "text-muted-foreground/40 hover:text-muted-foreground"
                                                                 )}
                                                             >
@@ -177,8 +177,8 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
                                                                 onClick={() => dayField.onChange("today")}
                                                                 className={cn(
                                                                     "px-2 py-0.5 rounded-md text-[9px] font-bold transition-all",
-                                                                    dayField.value === "today" 
-                                                                        ? "bg-primary/10 text-primary" 
+                                                                    dayField.value === "today"
+                                                                        ? "bg-primary/10 text-primary"
                                                                         : "text-muted-foreground/40 hover:text-muted-foreground"
                                                                 )}
                                                             >
@@ -202,7 +202,7 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
                                         name="endTime"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel className="text-sm font-medium opacity-80">{t("form.end_time")}</FormLabel>
+                                                <FormLabel className="text-xs font-medium opacity-80">{t("form.end_time")}</FormLabel>
                                                 <FormControl>
                                                     <Input type="time" {...field} value={field.value || ""} className="bg-background/50 border-muted focus:border-primary transition-colors h-11" />
                                                 </FormControl>
@@ -218,7 +218,7 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
                                         name="volume"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel className="text-sm font-medium opacity-80">{t("form.volume")}</FormLabel>
+                                                <FormLabel className="text-xs font-medium opacity-80">{t("form.volume")}</FormLabel>
                                                 <FormControl>
                                                     <Input
                                                         type="number"
@@ -240,7 +240,7 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
                                 name="note"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-sm font-medium opacity-80">{t("form.note")}</FormLabel>
+                                        <FormLabel className="text-xs font-medium opacity-80">{t("form.note")}</FormLabel>
                                         <FormControl>
                                             <Input placeholder={t("form.note")} {...field} value={field.value || ""} className="bg-background/50 border-muted focus:border-primary transition-colors h-11" />
                                         </FormControl>
@@ -249,7 +249,7 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
                                 )}
                             />
 
-                            <Button type="submit" className="w-full h-12 text-md font-semibold mt-4 shadow-lg shadow-primary/20" disabled={loading}>
+                            <Button type="submit" className="w-full h-10 text-sm font-semibold mt-3 shadow-lg shadow-primary/20" disabled={loading}>
                                 {loading ? "..." : t("form.submit")}
                             </Button>
                         </form>

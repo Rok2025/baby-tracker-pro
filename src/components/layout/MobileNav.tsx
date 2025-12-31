@@ -20,7 +20,9 @@ export function MobileNav() {
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-lg border-t z-50 px-6 py-3 flex justify-between items-center shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
             {navItems.map((item) => {
                 const Icon = item.icon
-                const isActive = pathname === item.href
+                const isActive = item.href === "/"
+                    ? pathname === "/"
+                    : pathname.startsWith(item.href)
                 return (
                     <Link
                         key={item.href}

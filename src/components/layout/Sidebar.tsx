@@ -89,7 +89,9 @@ export function Sidebar() {
             <nav className="flex-1 px-4 space-y-2">
                 {navItems.map((item) => {
                     const Icon = item.icon
-                    const isActive = pathname === item.href
+                    const isActive = item.href === "/"
+                        ? pathname === "/"
+                        : pathname.startsWith(item.href)
                     return (
                         <Link
                             key={item.href}
@@ -131,9 +133,9 @@ export function Sidebar() {
                 </div>
                 {user && (
                     <div className="mt-4">
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
+                        <Button
+                            variant="ghost"
+                            size="sm"
                             className="w-full justify-start text-muted-foreground hover:text-destructive"
                             onClick={() => signOut()}
                         >

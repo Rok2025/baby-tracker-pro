@@ -15,6 +15,8 @@ export default function DashboardPage() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [activities, setActivities] = useState<Activity[]>([])
   const [dataLoading, setDataLoading] = useState(true)
+  const [babyBirthDate, setBabyBirthDate] = useState<string | null>(null)
+  const [babyName, setBabyName] = useState<string | null>(null)
   const { t } = useLanguage()
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
@@ -79,6 +81,32 @@ export default function DashboardPage() {
     fetchActivities()
   }, [refreshKey, user])
 
+  // 获取宝宝配置（名字和出生日期）
+  useEffect(() => {
+    if (!user) return
+    async function fetchBabyConfig() {
+      const { data } = await supabase
+        .from("user_config")
+        .select("key, value")
+        .eq("user_id", user?.id)
+        .in("key", ["baby_birth_date", "baby_name"])
+      if (data) {
+        data.forEach(item => {
+          if (item.key === "baby_birth_date") setBabyBirthDate(item.value)
+          if (item.key === "baby_name") setBabyName(item.value)
+        })
+      }
+    }
+    fetchBabyConfig()
+  }, [user])
+
+  const [currentTime, setCurrentTime] = useState(new Date())
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000)
+    return () => clearInterval(timer)
+  }, [])
+
   if (authLoading || (!user && !authLoading)) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -87,26 +115,79 @@ export default function DashboardPage() {
     )
   }
 
+  const formatDate = (date: Date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  const formatTime = (date: Date) => {
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    const seconds = String(date.getSeconds()).padStart(2, '0')
+    return `${hours}:${minutes}:${seconds}`
+  }
+
+  const calculateBabyAge = () => {
+    if (!babyBirthDate) return null
+    const birth = new Date(babyBirthDate)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    birth.setHours(0, 0, 0, 0)
+
+    let months = (today.getFullYear() - birth.getFullYear()) * 12 + (today.getMonth() - birth.getMonth())
+    let days = today.getDate() - birth.getDate()
+
+    if (days < 0) {
+      months--
+      const lastMonth = new Date(today.getFullYear(), today.getMonth(), 0)
+      days += lastMonth.getDate()
+    }
+
+    return { months, days }
+  }
+
+  const babyAge = calculateBabyAge()
+
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
-      <header className="flex items-center gap-4">
-        <div className="p-3 bg-primary/20 rounded-2xl">
-          <LayoutDashboard className="w-8 h-8 text-primary" />
-        </div>
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">{t("dashboard.welcome")}</h2>
-          <p className="text-muted-foreground">{t("dashboard.subtitle")}</p>
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-4">
+      <header className="flex items-center justify-between gap-4">
+        {babyAge !== null ? (
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-primary/20 rounded-xl">
+              <LayoutDashboard className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-primary">{babyAge.months}<span className="text-base font-medium">个月</span>{babyAge.days}<span className="text-base font-medium">天</span></p>
+              <p className="text-xs text-muted-foreground">
+                {babyName ? (
+                  <><span className="text-primary font-semibold">{babyName}</span> 已出生</>
+                ) : (
+                  '宝宝已出生'
+                )}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="p-2.5 bg-primary/20 rounded-xl">
+            <LayoutDashboard className="w-6 h-6 text-primary" />
+          </div>
+        )}
+        <div className="text-right mr-5">
+          <p className="text-xl font-semibold tracking-tight tabular-nums text-foreground">{formatDate(currentTime)}</p>
+          <p className="text-sm tabular-nums text-muted-foreground">{formatTime(currentTime)}</p>
         </div>
       </header>
 
       <SummaryCards refreshKey={refreshKey} activities={activities} user={user} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        <div className="lg:col-span-5 sticky top-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+        <div className="lg:col-span-5 flex">
           <LogForm onSuccess={triggerRefresh} />
         </div>
 
-        <div className="lg:col-span-7">
+        <div className="lg:col-span-7 flex">
           <ActivityFeed
             refreshKey={refreshKey}
             onUpdate={triggerRefresh}

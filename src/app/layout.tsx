@@ -23,6 +23,7 @@ export const metadata: Metadata = {
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { TopBar } from "@/components/layout/TopBar";
+import { BackgroundOverlay } from "@/components/layout/BackgroundOverlay";
 
 import { ConfigurationProvider } from "@/components/ConfigurationProvider";
 import { AuthProvider } from "@/components/AuthProvider";
@@ -48,8 +49,9 @@ export default function RootLayout({
               <ConfigurationProvider>
                 <Sidebar />
                 <main className="flex-1 flex flex-col pb-20 md:pb-0 relative">
+                  <BackgroundOverlay />
                   <TopBar />
-                  <div className="flex-1 overflow-y-auto">
+                  <div className="flex-1 overflow-y-auto relative z-10">
                     {children}
                   </div>
                 </main>
