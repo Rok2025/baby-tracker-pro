@@ -11,9 +11,9 @@ export type Activity = {
   user_id: string // 新增
   type: 'sleep' | 'feeding' | 'other'
   start_time: string
-  end_time?: string
-  volume?: number // ml
-  note?: string
+  end_time?: string | null
+  volume?: number | null // ml
+  note?: string | null
 }
 
 export type UserConfig = {

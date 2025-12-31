@@ -68,16 +68,21 @@ export function ActivityFeed({
 
         if (editingActivity.type === 'feeding') {
             updatedValues.volume = editValues.volume
-        } else if (editingActivity.type === 'sleep' && editValues.end_time) {
-            // 结束时间的基础日期与开始时间一致
-            updatedValues.end_time = mergeTimeToDate(editingActivity.start_time, editValues.end_time)
+        } else if (editingActivity.type === 'sleep') {
+            if (editValues.end_time) {
+                // 结束时间的基础日期与开始时间一致
+                updatedValues.end_time = mergeTimeToDate(editingActivity.start_time, editValues.end_time)
 
-            // 处理跨天睡眠逻辑：如果结束时间早于开始时间，视为第二天
-            const start = new Date(updatedValues.start_time!)
-            const end = new Date(updatedValues.end_time!)
-            if (end <= start) {
-                end.setDate(end.getDate() + 1)
-                updatedValues.end_time = end.toISOString()
+                // 处理跨天睡眠逻辑：如果结束时间早于开始时间，视为第二天
+                const start = new Date(updatedValues.start_time!)
+                const end = new Date(updatedValues.end_time!)
+                if (end <= start) {
+                    end.setDate(end.getDate() + 1)
+                    updatedValues.end_time = end.toISOString()
+                }
+            } else {
+                // 如果没有填写结束时间，则设为 null (进行中)
+                updatedValues.end_time = null
             }
         }
 
@@ -167,19 +172,23 @@ export function ActivityFeed({
                                 >
                                     {/* 图标 */}
                                     <div className={cn(
-                                        "p-1.5 rounded shrink-0",
-                                        isSleep ? "bg-primary/20 text-primary" : "bg-chart-3/20 text-chart-3"
+                                        "p-1.5 rounded shrink-0 transition-all duration-500",
+                                        isSleep ? "bg-primary/20 text-primary" : "bg-chart-3/20 text-chart-3",
+                                        isSleep && !activity.end_time && "animate-pulse bg-primary/40 shadow-[0_0_12px_rgba(var(--primary),0.4)]"
                                     )}>
-                                        {isSleep ? <Moon className="w-3.5 h-3.5" /> : <Milk className="w-3.5 h-3.5" />}
+                                        {isSleep ? <Moon className={cn("w-3.5 h-3.5", isSleep && !activity.end_time && "animate-spin-slow")} /> : <Milk className="w-3.5 h-3.5" />}
                                     </div>
 
                                     {/* 时间 */}
                                     <span className="text-xs text-muted-foreground font-medium tabular-nums min-w-[85px] shrink-0">
                                         {(() => {
                                             const start = formatTime(activity.start_time)
-                                            if (isSleep && activity.end_time) {
-                                                const end = formatTime(activity.end_time)
-                                                return `${start}-${end}`
+                                            if (isSleep) {
+                                                if (activity.end_time) {
+                                                    const end = formatTime(activity.end_time)
+                                                    return `${start}-${end}`
+                                                }
+                                                return `${start} - ...`
                                             }
                                             return start
                                         })()}
@@ -187,8 +196,10 @@ export function ActivityFeed({
 
                                     {/* 关键数据：睡眠时长或喝奶量 - 固定宽度右对齐 */}
                                     <span className={cn(
-                                        "font-bold text-sm px-1.5 py-0.5 rounded text-right min-w-[56px] shrink-0",
-                                        isSleep ? "text-primary bg-primary/10" : "text-chart-3 bg-chart-3/10"
+                                        "font-bold text-[10px] px-1.5 py-0.5 rounded text-right min-w-[56px] shrink-0 transition-colors",
+                                        isSleep
+                                            ? (activity.end_time ? "text-primary bg-primary/10" : "text-primary bg-primary/30 animate-pulse border border-primary/20")
+                                            : "text-chart-3 bg-chart-3/10"
                                     )}>
                                         {isSleep ? (
                                             activity.end_time ? (() => {
@@ -196,7 +207,7 @@ export function ActivityFeed({
                                                 const hours = Math.floor(diffMins / 60)
                                                 const mins = diffMins % 60
                                                 return hours > 0 ? `${hours}h${mins}m` : `${mins}m`
-                                            })() : '...'
+                                            })() : t("duration.ongoing")
                                         ) : (
                                             `${activity.volume}ml`
                                         )}
@@ -312,7 +323,9 @@ export function ActivityFeed({
                                 </div>
                             ) : (
                                 <div className="grid gap-2">
-                                    <Label htmlFor="endTime" className="text-xs font-medium opacity-70">{t("form.end_time")}</Label>
+                                    <Label htmlFor="endTime" className="text-xs font-medium opacity-70">
+                                        {t("form.end_time")} <span className="text-[10px] font-normal opacity-50">({language === 'zh' ? '可选' : 'Optional'})</span>
+                                    </Label>
                                     <Input
                                         id="endTime"
                                         type="time"
