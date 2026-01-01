@@ -108,7 +108,10 @@ export function ActivityFeed({
 
     return (
         <>
-            <Card className="border-none shadow-2xl bg-card/60 backdrop-blur-xl overflow-hidden w-full flex flex-col">
+            <Card className={cn(
+                "border-none shadow-2xl bg-card/60 backdrop-blur-xl overflow-hidden w-full flex flex-col",
+                isExporting && "shadow-sm border border-slate-200/20"
+            )}>
                 <CardHeader className="pb-0 pt-2 px-6">
                     <CardTitle className={cn("text-base font-semibold flex items-center justify-between", isExporting && "text-xl pt-2")}>
                         {t("recent.activities")}
@@ -266,7 +269,7 @@ export function ActivityFeed({
                                 className={cn(
                                     "gap-6 md:gap-2 overflow-y-auto scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent",
                                     forceSingleColumn ? "flex flex-col" : "grid grid-cols-1 md:grid-cols-3",
-                                    isExporting && "gap-8 pb-4"
+                                    isExporting && "pb-4"
                                 )}
                                 style={{ maxHeight }}
                             >
