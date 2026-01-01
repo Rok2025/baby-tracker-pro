@@ -87,11 +87,15 @@ export function SummaryCards({ refreshKey, date = new Date(), activities = [], u
             forceSingleColumn ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2",
             isExporting && "grid-cols-2 gap-2 mb-2"
         )}>
-            <Card className={cn(
-                "border-none shadow-2xl transition-all duration-500 overflow-hidden bg-card/60 backdrop-blur-xl flex flex-col",
-                milkColor,
-                isExporting && "shadow-sm rounded-lg h-full"
-            )}>
+            <Card
+                className={cn(
+                    "border-none transition-all duration-500 overflow-hidden flex flex-col",
+                    isExporting ? "bg-card border border-slate-200/50" : "shadow-2xl bg-card/60 backdrop-blur-xl",
+                    milkColor,
+                    isExporting && "rounded-lg h-full"
+                )}
+                style={isExporting ? { boxShadow: '0 10px 30px -10px rgba(0,0,0,0.2)' } : undefined}
+            >
                 <CardContent className={cn("p-4 flex items-center justify-between flex-1", isExporting && "p-2 px-3")}>
                     <div className="space-y-0 min-w-0">
                         <p className={cn("text-xs font-medium opacity-80 uppercase tracking-wider", isExporting && "text-[8px] font-bold opacity-50")}>{t("summary.milk")}</p>
@@ -130,11 +134,15 @@ export function SummaryCards({ refreshKey, date = new Date(), activities = [], u
                 </div>
             </Card>
 
-            <Card className={cn(
-                "border-none shadow-2xl transition-all duration-500 overflow-hidden bg-card/60 backdrop-blur-xl flex flex-col",
-                sleepColor,
-                isExporting && "shadow-sm rounded-lg h-full"
-            )}>
+            <Card
+                className={cn(
+                    "border-none transition-all duration-500 overflow-hidden flex flex-col",
+                    isExporting ? "bg-card border border-slate-200/50" : "shadow-2xl bg-card/60 backdrop-blur-xl",
+                    sleepColor,
+                    isExporting && "rounded-lg h-full"
+                )}
+                style={isExporting ? { boxShadow: '0 10px 30px -10px rgba(0,0,0,0.2)' } : undefined}
+            >
                 <CardContent className={cn("p-4 flex items-center justify-between flex-1", isExporting && "p-2 px-3")}>
                     <div className="space-y-0 min-w-0">
                         <p className={cn("text-xs font-medium opacity-80 uppercase tracking-wider", isExporting && "text-[8px] font-bold opacity-50")}>{t("summary.sleep")}</p>
