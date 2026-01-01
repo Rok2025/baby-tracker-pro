@@ -1,0 +1,71 @@
+{
+    "common": {
+        "save": "保存",
+        "cancel": "取消",
+        "delete": "删除",
+        "edit": "修改",
+        "confirm": "确定",
+        "loading": "加载中...",
+        "today": "今日",
+        "ongoing": "进行中",
+        "hour": "小时",
+        "minute": "分",
+        "milliliter": "毫升",
+        "app_title": "宝宝成长助手",
+        "success": "成功",
+        "error": "错误"
+    },
+    "tabs": {
+        "dashboard": "首页",
+        "add": "记录",
+        "settings": "设置"
+    },
+    "dashboard": {
+        "milk_target": "今日奶量",
+        "milk_today": "今日奶量",
+        "sleep_target": "今日睡眠",
+        "sleep_today": "今日睡眠",
+        "no_records": "这一天还没有记录哦",
+        "morning": "上午",
+        "afternoon": "下午",
+        "evening": "晚上",
+        "confirm_delete": "确认删除",
+        "delete_message": "确定要删除这条记录吗？",
+        "month_unit": "个月",
+        "day_unit": "天",
+        "delete_success": "删除成功",
+        "delete_fail": "删除失败"
+    },
+    "logging": {
+        "title_add": "记录事件",
+        "title_edit": "修改记录",
+        "feeding": "喂奶",
+        "sleep": "睡眠",
+        "time": "记录时间",
+        "sleep_start": "入睡时间",
+        "sleep_end": "醒来时间",
+        "ongoing_label": "正在进行中",
+        "volume_label": "奶量 (毫升)",
+        "note_label": "备注",
+        "note_placeholder": "记录点什么...",
+        "submit": "完成并保存",
+        "baby_sleeping": "宝宝正在休息..."
+    },
+    "settings": {
+        "title": "系统设置",
+        "language": "语言设置",
+        "theme": "主题风格",
+        "themes": {
+            "light": "明亮模式",
+            "dark": "暗黑模式",
+            "dracula": "Dracula 主题"
+        },
+        "languages": {
+            "zh": "简体中文",
+            "en": "English"
+        },
+        "targets": "目标设置",
+        "target_milk": "每日奶量目标",
+        "target_sleep": "每日睡眠目标"
+    }
+}

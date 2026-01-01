@@ -5,25 +5,28 @@ import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { UIProvider, useUI } from './src/context/UIContext';
+import { ConfigProvider, useConfig } from './src/context/ConfigContext';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { LoggingModal } from './src/components/dashboard/LoggingModal';
+import './src/i18n';
 
 const Main = () => {
   const { user, loading } = useAuth();
   const { isLogModalVisible, closeLogModal } = useUI();
+  const { colors } = useConfig();
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF6B6B" />
-        <Text style={{ marginTop: 10, color: '#999' }}>加载中...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ marginTop: 10, color: colors.textSecondary }}>加载中...</Text>
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F8F9FA' }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <NavigationContainer>
         {user ? <AppNavigator /> : <LoginScreen />}
       </NavigationContainer>
@@ -37,7 +40,7 @@ const Main = () => {
           }}
         />
       )}
-      <StatusBar style="auto" />
+      <StatusBar style={colors.statusBarStyle as any} />
     </View>
   );
 };
@@ -45,11 +48,13 @@ const Main = () => {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <UIProvider>
-          <Main />
-        </UIProvider>
-      </AuthProvider>
+      <ConfigProvider>
+        <AuthProvider>
+          <UIProvider>
+            <Main />
+          </UIProvider>
+        </AuthProvider>
+      </ConfigProvider>
     </SafeAreaProvider>
   );
 }

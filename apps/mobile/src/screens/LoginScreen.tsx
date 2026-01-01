@@ -11,11 +11,14 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { supabase } from '../lib/supabase';
+import { useConfig } from '../context/ConfigContext';
 
 export const LoginScreen = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+
+    const { colors } = useConfig();
 
     const handleLogin = async () => {
         if (!email || !password) {
@@ -38,20 +41,21 @@ export const LoginScreen = () => {
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.container}
+            style={[styles.container, { backgroundColor: colors.background }]}
         >
             <View style={styles.inner}>
                 <View style={styles.header}>
-                    <Text style={styles.title}>欢迎回来</Text>
-                    <Text style={styles.subtitle}>请登录以同步您的宝宝数据</Text>
+                    <Text style={[styles.title, { color: colors.text }]}>欢迎回来</Text>
+                    <Text style={[styles.subtitle, { color: colors.textSecondary }]}>请登录以同步您的宝宝数据</Text>
                 </View>
 
-                <View style={styles.form}>
+                <View style={[styles.form, { backgroundColor: colors.card, borderColor: colors.border }]}>
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>邮箱地址</Text>
+                        <Text style={[styles.label, { color: colors.text }]}>邮箱地址</Text>
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, { backgroundColor: colors.background, color: colors.text }]}
                             placeholder="example@mail.com"
+                            placeholderTextColor={colors.textSecondary}
                             value={email}
                             onChangeText={setEmail}
                             autoCapitalize="none"
@@ -60,10 +64,11 @@ export const LoginScreen = () => {
                     </View>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>密码</Text>
+                        <Text style={[styles.label, { color: colors.text }]}>密码</Text>
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, { backgroundColor: colors.background, color: colors.text }]}
                             placeholder="请输入密码"
+                            placeholderTextColor={colors.textSecondary}
                             value={password}
                             onChangeText={setPassword}
                             secureTextEntry={true}
@@ -71,7 +76,7 @@ export const LoginScreen = () => {
                     </View>
 
                     <TouchableOpacity
-                        style={[styles.button, loading && styles.buttonDisabled]}
+                        style={[styles.button, { backgroundColor: colors.primary }, loading && styles.buttonDisabled]}
                         onPress={handleLogin}
                         disabled={loading}
                     >

@@ -1,0 +1,71 @@
+{
+    "common": {
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "confirm": "Confirm",
+        "loading": "Loading...",
+        "today": "Today",
+        "ongoing": "Ongoing",
+        "hour": "h",
+        "minute": "m",
+        "milliliter": "ml",
+        "app_title": "Baby Tracker",
+        "success": "Success",
+        "error": "Error"
+    },
+    "tabs": {
+        "dashboard": "Dashboard",
+        "add": "Log",
+        "settings": "Settings"
+    },
+    "dashboard": {
+        "milk_target": "Today's Milk",
+        "milk_today": "Today's Milk",
+        "sleep_target": "Today's Sleep",
+        "sleep_today": "Today's Sleep",
+        "no_records": "No records for this day",
+        "morning": "Morning",
+        "afternoon": "Afternoon",
+        "evening": "Evening",
+        "confirm_delete": "Confirm Delete",
+        "delete_message": "Are you sure you want to delete this record?",
+        "month_unit": "mo",
+        "day_unit": "d",
+        "delete_success": "Deleted successfully",
+        "delete_fail": "Delete failed"
+    },
+    "logging": {
+        "title_add": "Log Event",
+        "title_edit": "Edit Record",
+        "feeding": "Feeding",
+        "sleep": "Sleep",
+        "time": "Time",
+        "sleep_start": "Sleep Time",
+        "sleep_end": "Wake Time",
+        "ongoing_label": "In Progress",
+        "volume_label": "Volume (ml)",
+        "note_label": "Note",
+        "note_placeholder": "Write something...",
+        "submit": "Finish and Save",
+        "baby_sleeping": "Baby is sleeping..."
+    },
+    "settings": {
+        "title": "System Settings",
+        "language": "Language",
+        "theme": "Theme Style",
+        "themes": {
+            "light": "Light Mode",
+            "dark": "Dark Mode",
+            "dracula": "Dracula Theme"
+        },
+        "languages": {
+            "zh": "Chinese",
+            "en": "English"
+        },
+        "targets": "Targets",
+        "target_milk": "Daily Milk Target",
+        "target_sleep": "Daily Sleep Target"
+    }
+}

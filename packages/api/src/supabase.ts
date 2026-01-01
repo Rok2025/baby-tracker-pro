@@ -56,11 +56,22 @@ export const fetchActivitiesForDay = async (userId: string, date: Date) => {
 
     if (error) throw error
 
-    // 客户端过滤跨天记录
+    // 客户端过滤：
+    // - 喂奶/其他记录：按 start_time 归属日期
+    // - 睡眠记录：有 end_time 时按 end_time 归属日期（跨天归属于醒来那天）
     return (data || []).filter((act: Activity) => {
-        const actStart = new Date(act.start_time).getTime()
-        const actEnd = act.end_time ? new Date(act.end_time).getTime() : actStart
-        return actStart <= endOfDay.getTime() && actEnd >= startOfDay.getTime()
+        const dayStart = startOfDay.getTime()
+        const dayEnd = endOfDay.getTime()
+
+        if (act.type === 'sleep' && act.end_time) {
+            // 完成的睡眠：归属于醒来的那天
+            const actEnd = new Date(act.end_time).getTime()
+            return actEnd >= dayStart && actEnd <= dayEnd
+        } else {
+            // 喂奶、其他记录、进行中的睡眠：按开始时间归属
+            const actStart = new Date(act.start_time).getTime()
+            return actStart >= dayStart && actStart <= dayEnd
+        }
     })
 }
 

@@ -3,33 +3,42 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { LayoutDashboard, Settings, PlusCircle } from 'lucide-react-native';
 import { View, StyleSheet } from 'react-native';
 import { TimelineScreen } from '../screens/Dashboard/TimelineScreen';
+import { SettingsScreen } from '../screens/Dashboard/SettingsScreen';
 import { useUI } from '../context/UIContext';
+import { useConfig } from '../context/ConfigContext';
+import { useTranslation } from 'react-i18next';
 
 const Tab = createBottomTabNavigator();
 
 // 简单的占位页面
-const Placeholder = () => (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8F9FA' }}>
-        <LayoutDashboard size={48} color="#FF6B6B" />
-    </View>
-);
+const Placeholder = () => {
+    const { colors } = useConfig();
+    return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+            <LayoutDashboard size={48} color={colors.primary} />
+        </View>
+    );
+};
 
 const Empty = () => null;
 
 export const AppNavigator = () => {
     const { openLogModal } = useUI();
+    const { themeMode, colors } = useConfig();
+    const { t } = useTranslation();
 
     return (
         <Tab.Navigator
             screenOptions={{
-                tabBarActiveTintColor: '#FF6B6B',
-                tabBarInactiveTintColor: '#999',
+                tabBarActiveTintColor: colors.primary,
+                tabBarInactiveTintColor: colors.tabInactive,
                 headerShown: false,
-                tabBarShowLabel: false, // 全局隐藏 Label，避免潜在的类型报错
+                tabBarShowLabel: false,
                 tabBarStyle: {
                     borderTopWidth: 1,
-                    borderTopColor: '#f1f1f1',
+                    borderTopColor: colors.border,
                     height: 60,
+                    backgroundColor: colors.tabBar,
                 }
             }}
         >
@@ -47,7 +56,7 @@ export const AppNavigator = () => {
                 options={{
                     tabBarIcon: () => (
                         <View style={styles.plusContainer}>
-                            <PlusCircle size={44} color="#FF6B6B" />
+                            <PlusCircle size={44} color={colors.primary} />
                         </View>
                     ),
                 }}
@@ -61,7 +70,7 @@ export const AppNavigator = () => {
 
             <Tab.Screen
                 name="Settings"
-                component={Placeholder}
+                component={SettingsScreen}
                 options={{
                     tabBarIcon: ({ color, size }) => <Settings size={size} color={color} />
                 }}
