@@ -1,0 +1,66 @@
+.settings-page {
+    min-height: 100vh;
+    background: #f8f9fa;
+    padding: 24px;
+    padding-bottom: 120px;
+}
+
+.section {
+    margin-bottom: 32px;
+}
+
+.section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #888;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.info-card {
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.label {
+    font-size: 16px;
+    color: #333;
+}
+
+.value {
+    font-size: 14px;
+    color: #888;
+}
+
+.logout-section {
+    margin-top: 60px;
+}
+
+.logout-btn {
+    width: 100%;
+    padding: 28px;
+    background: #fff;
+    color: #ff6b6b;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 16px;
+    border: 1px solid #ffecec;
+}
+
+.logout-btn::after {
+    border: none;
+}

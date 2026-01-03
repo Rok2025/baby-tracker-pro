@@ -1,0 +1,157 @@
+.record-page {
+    min-height: 100vh;
+    background: #f8f9fa;
+    padding: 24px;
+    padding-bottom: 120px;
+}
+
+.not-logged-in {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
+    color: #999;
+}
+
+/* Type Selector */
+.type-selector {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.type-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: #fff;
+    border-radius: 20px;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.type-btn.active.feeding {
+    border-color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.05);
+}
+
+.type-btn.active.sleep {
+    border-color: #7c4dff;
+    background: rgba(124, 77, 255, 0.05);
+}
+
+.type-icon {
+    font-size: 40px;
+    margin-bottom: 8px;
+}
+
+.type-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Form */
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #666;
+    margin-bottom: 12px;
+}
+
+.input {
+    background: #fff;
+    padding: 16px 20px;
+    border-radius: 12px;
+    font-size: 16px;
+    border: 1px solid #eee;
+}
+
+.note-input {
+    min-height: 60px;
+}
+
+/* Volume Input */
+.volume-input {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.quick-btns {
+    display: flex;
+    gap: 8px;
+}
+
+.quick-btn {
+    flex: 1;
+    padding: 12px;
+    background: #fff;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: #666;
+    border: 1px solid #eee;
+}
+
+.quick-btn.active {
+    background: #ff6b6b;
+    color: #fff;
+    border-color: #ff6b6b;
+}
+
+/* Picker */
+.picker-value {
+    background: #fff;
+    padding: 16px 20px;
+    border-radius: 12px;
+    font-size: 16px;
+    border: 1px solid #eee;
+    color: #333;
+}
+
+/* Submit */
+.submit-area {
+    margin-top: 40px;
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 32px;
+    border-radius: 16px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    border: none;
+}
+
+.submit-btn.feeding {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ffa07a 100%);
+}
+
+.submit-btn.sleep {
+    background: linear-gradient(135deg, #7c4dff 0%, #b388ff 100%);
+}
+
+.submit-btn::after {
+    border: none;
+}
+
+.submit-btn[disabled] {
+    background: #ccc;
+}

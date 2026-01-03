@@ -51,6 +51,13 @@ export default defineConfig<'webpack5'>(async (merge, { command, mode }) => {
       },
       webpackChain(chain) {
         chain.resolve.plugin('tsconfig-paths').use(TsconfigPathsPlugin)
+
+        // 配置 babel-loader 来处理 @yoyo/api 包中的 TypeScript
+        chain.module
+          .rule('script')
+          .include
+          .add(/[\\/]node_modules[\\/]@yoyo[\\/]/)
+          .end()
       }
     },
     h5: {
