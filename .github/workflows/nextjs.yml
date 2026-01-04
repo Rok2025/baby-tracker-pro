@@ -39,7 +39,7 @@ jobs:
         run: pnpm install
 
       - name: Build with Next.js
-        run: pnpm build --filter=yoyo
+        run: pnpm build --filter=@yoyo/web
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
