@@ -6,7 +6,7 @@ import { LayoutDashboard, History, Settings, Milk, Moon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useLanguage } from "@/components/LanguageProvider"
 import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { supabase, Activity } from "@/lib/supabase"
 import { ThemeToggle } from "../ThemeToggle"
 import { LanguageToggle } from "../LanguageToggle"
 import { useAuth } from "@/components/AuthProvider"
@@ -42,7 +42,7 @@ export function Sidebar() {
             if (activities) {
                 let milk = 0
                 let sleepMins = 0
-                activities.forEach(act => {
+                activities.forEach((act: Activity) => {
                     const actStart = new Date(act.start_time)
                     const actEnd = act.end_time ? new Date(act.end_time).getTime() : actStart.getTime()
 
