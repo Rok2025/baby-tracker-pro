@@ -6,7 +6,7 @@ import { LogForm } from "@/components/dashboard/LogForm"
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed"
 import { useLanguage } from "@/components/LanguageProvider"
 import { useAuth } from "@/components/AuthProvider"
-import { supabase, Activity } from "@/lib/supabase"
+import { supabase, Activity, UserConfig } from "@/lib/supabase"
 import { toast } from "sonner"
 import { LayoutDashboard, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -54,12 +54,12 @@ export default function DashboardPage() {
         toast.error("Failed to load today's activities")
       } else {
         const processed = (data || [])
-          .filter(act => {
+          .filter((act: Activity) => {
             const actStart = new Date(act.start_time).getTime()
             const actEnd = act.end_time ? new Date(act.end_time).getTime() : actStart
             return actStart <= endOfDay.getTime() && actEnd >= startOfDay.getTime()
           })
-          .sort((a, b) => {
+          .sort((a: Activity, b: Activity) => {
             const getSortTime = (act: Activity) => {
               const start = new Date(act.start_time).getTime()
               // 如果是昨晚开始的睡眠，使用结束时间排序；否则使用开始时间排序
@@ -91,7 +91,7 @@ export default function DashboardPage() {
         .eq("user_id", user?.id)
         .in("key", ["baby_birth_date", "baby_name"])
       if (data) {
-        data.forEach(item => {
+        data.forEach((item: UserConfig) => {
           if (item.key === "baby_birth_date") setBabyBirthDate(item.value)
           if (item.key === "baby_name") setBabyName(item.value)
         })

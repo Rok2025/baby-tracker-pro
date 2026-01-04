@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react"
 import { Milk, Moon } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
-import { supabase, Activity } from "@/lib/supabase"
+import { supabase, Activity, UserConfig } from "@/lib/supabase"
 import { useLanguage } from "@/components/LanguageProvider"
 import { cn } from "@/lib/utils"
 
@@ -27,7 +27,7 @@ export function SummaryCards({ refreshKey, date = new Date(), activities = [], u
 
             if (configData) {
                 const newStandards = { milk: 800, sleep: 600 }
-                configData.forEach(item => {
+                configData.forEach((item: UserConfig) => {
                     const val = parseFloat(item.value)
                     if (isNaN(val)) return
                     if (item.key === "target_milk_ml") newStandards.milk = val

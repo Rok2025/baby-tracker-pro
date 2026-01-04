@@ -1,7 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { supabase, UserConfig } from "@/lib/supabase"
 
 type FontSize = "small" | "normal" | "large"
 
@@ -24,11 +24,11 @@ export function ConfigurationProvider({ children }: { children: React.ReactNode 
         async function fetchConfig() {
             const { data } = await supabase.from("user_config").select("*")
             if (data) {
-                const fontSizeItem = data.find(item => item.key === "font_size")
+                const fontSizeItem = data.find((item: UserConfig) => item.key === "font_size")
                 if (fontSizeItem) {
                     setFontSizeState(fontSizeItem.value as FontSize)
                 }
-                const bgOpacityItem = data.find(item => item.key === "bg_opacity")
+                const bgOpacityItem = data.find((item: UserConfig) => item.key === "bg_opacity")
                 if (bgOpacityItem) {
                     setBgOpacityState(parseFloat(bgOpacityItem.value))
                 }

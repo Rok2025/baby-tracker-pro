@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { supabase } from "@/lib/supabase"
+import { supabase, UserConfig } from "@/lib/supabase"
 import { toast } from "sonner"
 import { Settings as SettingsIcon, Save, Loader2, Database } from "lucide-react"
 import { useLanguage } from "@/components/LanguageProvider"
@@ -42,7 +42,7 @@ export default function SettingsPage() {
                 .select("*")
                 .eq("user_id", user?.id)
             if (data) {
-                data.forEach(item => {
+                data.forEach((item: UserConfig) => {
                     if (item.key === "target_milk_ml") setMilkTarget(parseFloat(item.value))
                     if (item.key === "target_sleep_hours") setSleepTarget(parseFloat(item.value))
                     if (item.key === "baby_birth_date") setBabyBirthDate(item.value)
