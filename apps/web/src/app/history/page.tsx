@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed"
 import { SummaryCards } from "@/components/dashboard/SummaryCards"
+import { ElderlyExportView } from "@/components/dashboard/ElderlyExportView"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Loader2, ImageIcon } from "lucide-react"
@@ -29,7 +30,8 @@ export default function HistoryPage() {
     const router = useRouter()
 
     const exportRef = useRef<HTMLDivElement>(null)
-    const [exportingMode, setExportingMode] = useState<'desktop' | 'mobile' | null>(null)
+    const elderlyExportRef = useRef<HTMLDivElement>(null)
+    const [exportingMode, setExportingMode] = useState<'desktop' | 'mobile' | 'elderly' | null>(null)
 
     useEffect(() => {
         if (!authLoading && !user) {
@@ -64,12 +66,12 @@ export default function HistoryPage() {
                 toast.error("Failed to load historical data")
             } else {
                 const processed = (data || [])
-                    .filter(act => {
+                    .filter((act: Activity) => {
                         const actStart = new Date(act.start_time).getTime()
                         const actEnd = act.end_time ? new Date(act.end_time).getTime() : actStart
                         return actStart <= endOfDay.getTime() && actEnd >= startOfDay.getTime()
                     })
-                    .sort((a, b) => {
+                    .sort((a: Activity, b: Activity) => {
                         const getSortTime = (act: Activity) => {
                             const start = new Date(act.start_time).getTime()
                             if (act.type === 'sleep' && start < startOfDay.getTime() && act.end_time) {
@@ -90,8 +92,41 @@ export default function HistoryPage() {
         fetchActivities()
     }, [date, refreshKey, user])
 
-    const handleExport = async (mode: 'desktop' | 'mobile') => {
-        if (!exportRef.current) return
+    // 计算统计数据供老人版导出使用
+    const stats = useMemo(() => {
+        const startOfDay = new Date(date)
+        startOfDay.setHours(0, 0, 0, 0)
+        const endOfDay = new Date(date)
+        endOfDay.setHours(23, 59, 59, 999)
+
+        let volume = 0
+        let sleepMins = 0
+
+        activities.forEach((act) => {
+            if (act.type === "feeding" && act.volume) {
+                const actStart = new Date(act.start_time)
+                if (actStart >= startOfDay && actStart <= endOfDay) {
+                    volume += act.volume
+                }
+            }
+            if (act.type === "sleep" && act.start_time && act.end_time) {
+                const actEnd = new Date(act.end_time).getTime()
+                const dayStart = startOfDay.getTime()
+                const dayEnd = endOfDay.getTime()
+
+                if (actEnd >= dayStart && actEnd <= dayEnd) {
+                    const actStart = new Date(act.start_time).getTime()
+                    sleepMins += (actEnd - actStart) / (1000 * 60)
+                }
+            }
+        })
+
+        return { totalVolume: volume, totalSleepMinutes: sleepMins }
+    }, [activities, date])
+
+    const handleExport = async (mode: 'desktop' | 'mobile' | 'elderly') => {
+        const targetRef = mode === 'elderly' ? elderlyExportRef : exportRef
+        if (!targetRef.current) return
         setExportingMode(mode)
 
         // 等待足够时间以确保 React 完成 DOM 状态更新
@@ -99,18 +134,24 @@ export default function HistoryPage() {
 
         try {
             const isDark = theme === 'dark'
-            const bgColor = isDark ? '#020617' : '#f8fafc'
+            const bgColor = mode === 'elderly'
+                ? (isDark ? '#0f172a' : '#ffffff')
+                : (isDark ? '#020617' : '#f8fafc')
 
-            const dataUrl = await toPng(exportRef.current, {
+            const dataUrl = await toPng(targetRef.current, {
                 cacheBust: true,
                 backgroundColor: bgColor,
                 pixelRatio: 2,
             })
             const link = document.createElement('a')
-            link.download = `baby-tracker-${mode === 'mobile' ? 'mobile-' : ''}history-${format(date, 'yyyy-MM-dd')}.png`
+            const modeLabel = mode === 'elderly' ? 'elderly-' : (mode === 'mobile' ? 'mobile-' : '')
+            link.download = `baby-tracker-${modeLabel}history-${format(date, 'yyyy-MM-dd')}.png`
             link.href = dataUrl
             link.click()
-            toast.success(`${mode === 'mobile' ? 'Mobile' : 'Desktop'} image exported successfully!`)
+            const successMsg = mode === 'elderly'
+                ? (language === 'zh' ? '大字版图片导出成功！' : 'Large text image exported!')
+                : `${mode === 'mobile' ? 'Mobile' : 'Desktop'} image exported successfully!`
+            toast.success(successMsg)
         } catch (err) {
             console.error("Export error:", err)
             toast.error("Failed to export image")
@@ -218,6 +259,17 @@ export default function HistoryPage() {
                                 </div>
                                 <span className="text-sm font-medium">{language === 'zh' ? '导出手机图片' : 'Mobile Export'}</span>
                             </Button>
+                            <div className="h-px bg-muted/50 my-1" />
+                            <Button
+                                variant="ghost"
+                                className="w-full justify-start gap-2 rounded-xl px-3"
+                                onClick={() => handleExport('elderly')}
+                            >
+                                <div className="p-1 rounded-md bg-orange-500/10 text-orange-500">
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2" /><path d="M9 22v-4h6v4" /><text x="12" y="14" textAnchor="middle" fontSize="8" fill="currentColor" stroke="none" fontWeight="bold">大</text></svg>
+                                </div>
+                                <span className="text-sm font-medium">{language === 'zh' ? '导出手机（大字）' : 'Mobile (Large)'}</span>
+                            </Button>
                         </PopoverContent>
                     </Popover>
                 </div>
@@ -278,6 +330,15 @@ export default function HistoryPage() {
                         isExporting={true}
                     />
                 </div>
+
+                {/* 老人版导出专用区域 */}
+                <ElderlyExportView
+                    ref={elderlyExportRef}
+                    date={date}
+                    activities={activities}
+                    totalVolume={stats.totalVolume}
+                    totalSleepMinutes={stats.totalSleepMinutes}
+                />
             </div>
         </div>
     )
