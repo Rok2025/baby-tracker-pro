@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useLanguage } from "@/components/LanguageProvider"
+import { invalidateActivityCache } from "@yoyo/api"
 
 export function ActivityFeed({
     refreshKey,
@@ -49,6 +50,11 @@ export function ActivityFeed({
         if (error) {
             toast.error("Failed to delete entry")
         } else {
+            // 失效缓存
+            const activity = activities.find(a => a.id === id)
+            if (activity) {
+                invalidateActivityCache(activity.user_id, new Date(activity.start_time))
+            }
             toast.success("Entry deleted")
             onUpdate()
         }
@@ -98,6 +104,8 @@ export function ActivityFeed({
         if (error) {
             toast.error("Failed to update entry")
         } else {
+            // 失效缓存
+            invalidateActivityCache(editingActivity.user_id, new Date(editingActivity.start_time))
             toast.success("Entry updated")
             setEditingActivity(null)
             onUpdate()
@@ -272,7 +280,7 @@ export function ActivityFeed({
                         return (
                             <div
                                 className={cn(
-                                    "gap-6 md:gap-2 overflow-y-auto scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent",
+                                    "gap-6 md:gap-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent",
                                     forceSingleColumn ? "flex flex-col" : "grid grid-cols-1 md:grid-cols-3",
                                     isExporting && "pb-4"
                                 )}

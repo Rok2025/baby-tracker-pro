@@ -12,7 +12,6 @@ export function MobileNav() {
 
     const navItems = [
         { name: t("app.dashboard_short"), href: "/", icon: LayoutDashboard },
-        { name: t("app.history"), href: "/history", icon: History },
         { name: t("app.settings"), href: "/settings", icon: Settings },
     ]
 

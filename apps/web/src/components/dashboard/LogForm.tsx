@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabase"
+import { invalidateActivityCache } from "@yoyo/api"
 import { useLanguage } from "@/components/LanguageProvider"
 import { useAuth } from "@/components/AuthProvider"
 import { cn } from "@/lib/utils"
@@ -88,6 +89,11 @@ export function LogForm({ onSuccess }: { onSuccess?: () => void }) {
             ])
 
             if (error) throw error
+
+            // 失效缓存
+            if (user?.id) {
+                invalidateActivityCache(user.id, startDate)
+            }
 
             toast.success("Activity logged successfully!")
             form.reset({

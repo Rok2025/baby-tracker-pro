@@ -75,7 +75,6 @@ export function Sidebar() {
 
     const navItems = [
         { name: t("app.dashboard"), href: "/", icon: LayoutDashboard },
-        { name: t("app.history"), href: "/history", icon: History },
         { name: t("app.settings"), href: "/settings", icon: Settings },
     ]
 
