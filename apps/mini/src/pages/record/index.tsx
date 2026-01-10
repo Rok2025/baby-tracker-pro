@@ -1,6 +1,6 @@
 import { View, Text, Button, Input, Picker } from '@tarojs/components'
-import { useState } from 'react'
-import Taro from '@tarojs/taro'
+import { useState, useEffect } from 'react'
+import Taro, { useRouter } from '@tarojs/taro'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import './index.scss'
@@ -9,10 +9,14 @@ type RecordType = 'feeding' | 'sleep'
 
 export default function Record() {
     const { session } = useAuth()
+    const router = useRouter()
+    const { id } = router.params
+
     const [recordType, setRecordType] = useState<RecordType>('feeding')
     const [volume, setVolume] = useState('120')
     const [note, setNote] = useState('')
     const [loading, setLoading] = useState(false)
+    const [fetching, setFetching] = useState(!!id)
 
     // 时间选择
     const now = new Date()
@@ -20,6 +24,50 @@ export default function Record() {
         `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
     )
     const [endTime, setEndTime] = useState('')
+    const [isStartTimeYesterday, setIsStartTimeYesterday] = useState(false)
+
+    // 如果有 ID，说明是编辑模式，加载数据
+    useEffect(() => {
+        if (!id || !session?.user) return
+
+        const loadRecord = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('activities')
+                    .select('*')
+                    .eq('id', id)
+                    .single()
+
+                if (error) throw error
+
+                if (data) {
+                    setRecordType(data.type)
+                    setVolume(data.volume ? String(data.volume) : '120')
+                    setNote(data.note || '')
+
+                    const start = new Date(data.start_time)
+                    setStartTime(`${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}`)
+
+                    // 判断是否是昨天 (简单判断：如果记录的日期早于当前服务器日期的 0 点)
+                    const today0 = new Date()
+                    today0.setHours(0, 0, 0, 0)
+                    setIsStartTimeYesterday(start < today0)
+
+                    if (data.end_time) {
+                        const end = new Date(data.end_time)
+                        setEndTime(`${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`)
+                    }
+                }
+            } catch (err) {
+                console.error('Load record error:', err)
+                Taro.showToast({ title: '加载失败', icon: 'error' })
+            } finally {
+                setFetching(false)
+            }
+        }
+
+        loadRecord()
+    }, [id, session])
 
     const handleSubmit = async () => {
         if (!session?.user) {
@@ -35,31 +83,46 @@ export default function Record() {
         setLoading(true)
 
         try {
-            const today = new Date()
+            const startDate = new Date()
             const [startH, startM] = startTime.split(':').map(Number)
-            const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), startH, startM)
+            startDate.setHours(startH, startM, 0, 0)
+
+            if (isStartTimeYesterday) {
+                startDate.setDate(startDate.getDate() - 1)
+            }
 
             let endDate: Date | null = null
             if (recordType === 'sleep' && endTime) {
                 const [endH, endM] = endTime.split(':').map(Number)
-                endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), endH, endM)
-                // 如果结束时间小于开始时间，说明跨天
+                endDate = new Date(startDate) // 基准设为开始时间
+                endDate.setHours(endH, endM, 0, 0)
+
+                // 如果结束时间（时分）小于开始时间（时分），说明该次睡眠跨越了凌晨
                 if (endDate < startDate) {
                     endDate.setDate(endDate.getDate() + 1)
                 }
             }
 
-            const { error } = await supabase.from('activities').insert({
+            const payload = {
                 user_id: session.user.id,
                 type: recordType,
                 start_time: startDate.toISOString(),
                 end_time: endDate?.toISOString() || null,
                 volume: recordType === 'feeding' ? parseInt(volume) : null,
                 note: note || null,
-            })
+            }
 
-            if (error) {
-                console.error('Insert error:', error)
+            let res;
+            if (id) {
+                // 更新模式
+                res = await supabase.from('activities').update(payload).eq('id', id)
+            } else {
+                // 新增模式
+                res = await supabase.from('activities').insert(payload)
+            }
+
+            if (res.error) {
+                console.error('Submit error:', res.error)
                 Taro.showToast({ title: '保存失败', icon: 'error' })
             } else {
                 Taro.showToast({ title: '保存成功', icon: 'success' })
@@ -86,20 +149,30 @@ export default function Record() {
         )
     }
 
+    if (fetching) {
+        return (
+            <View className='record-page'>
+                <View className='loading'>
+                    <Text>加载中...</Text>
+                </View>
+            </View>
+        )
+    }
+
     return (
         <View className='record-page'>
-            {/* 类型选择 */}
+            {/* 类型选择 - 编辑模式下禁用类型切换以防复杂逻辑 */}
             <View className='type-selector'>
                 <View
-                    className={`type-btn ${recordType === 'feeding' ? 'active feeding' : ''}`}
-                    onClick={() => setRecordType('feeding')}
+                    className={`type-btn ${recordType === 'feeding' ? 'active feeding' : ''} ${id ? 'disabled' : ''}`}
+                    onClick={() => !id && setRecordType('feeding')}
                 >
                     <Text className='type-icon'>🍼</Text>
                     <Text className='type-text'>喂奶</Text>
                 </View>
                 <View
-                    className={`type-btn ${recordType === 'sleep' ? 'active sleep' : ''}`}
-                    onClick={() => setRecordType('sleep')}
+                    className={`type-btn ${recordType === 'sleep' ? 'active sleep' : ''} ${id ? 'disabled' : ''}`}
+                    onClick={() => !id && setRecordType('sleep')}
                 >
                     <Text className='type-icon'>😴</Text>
                     <Text className='type-text'>睡眠</Text>
@@ -119,7 +192,7 @@ export default function Record() {
                                 placeholder='输入奶量'
                                 className='input'
                             />
-                            <View className='quick-btns'>
+                            <View className='quick-actions'>
                                 {[60, 90, 120, 150, 180].map(v => (
                                     <View
                                         key={v}
@@ -135,11 +208,28 @@ export default function Record() {
                 ) : null}
 
                 <View className='form-group'>
-                    <Text className='label'>开始时间</Text>
+                    <View className='label-row'>
+                        <Text className='label'>开始时间</Text>
+                        <View className='day-toggle'>
+                            <View
+                                className={`toggle-item ${isStartTimeYesterday ? 'active' : ''}`}
+                                onClick={() => setIsStartTimeYesterday(true)}
+                            >
+                                昨日
+                            </View>
+                            <View
+                                className={`toggle-item ${!isStartTimeYesterday ? 'active' : ''}`}
+                                onClick={() => setIsStartTimeYesterday(false)}
+                            >
+                                今日
+                            </View>
+                        </View>
+                    </View>
                     <Picker
                         mode='time'
                         value={startTime}
                         onChange={(e) => setStartTime(e.detail.value)}
+                        className='time-picker'
                     >
                         <View className='picker-value'>
                             <Text>{startTime || '选择时间'}</Text>
@@ -181,7 +271,7 @@ export default function Record() {
                     loading={loading}
                     disabled={loading}
                 >
-                    保存记录
+                    {id ? '更新记录' : '保存记录'}
                 </Button>
             </View>
         </View>

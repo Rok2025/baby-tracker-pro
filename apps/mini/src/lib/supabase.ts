@@ -178,29 +178,48 @@ export const supabase = {
         const filters: string[] = []
         let selectColumns = '*'
 
-        const builder = {
+        const builder: any = {
             select: (columns: string = '*') => {
                 selectColumns = columns
                 return builder
             },
 
+            order: (column: string, { ascending = true } = {}) => {
+                filters.push(`order=${column}.${ascending ? 'asc' : 'desc'}`)
+                return builder
+            },
+
+            single: () => {
+                builder._single = true
+                return builder
+            },
+
             eq: (column: string, value: any) => {
-                filters.push(`${column}=eq.${value}`)
+                filters.push(`${column}=eq.${encodeURIComponent(String(value))}`)
                 return builder
             },
 
             lte: (column: string, value: any) => {
-                filters.push(`${column}=lte.${value}`)
+                filters.push(`${column}=lte.${encodeURIComponent(String(value))}`)
                 return builder
             },
 
             gte: (column: string, value: any) => {
-                filters.push(`${column}=gte.${value}`)
+                filters.push(`${column}=gte.${encodeURIComponent(String(value))}`)
                 return builder
             },
 
             or: (filter: string) => {
+                // Do not encode the entire or string as it contains separators like ',' and '.'
+                // The values inside (like ISO dates) are generally safe in PostgREST without encoding,
+                // but we should ideally only encode the value parts. For now, passing raw is safer than encoding the whole thing.
                 filters.push(`or=(${filter})`)
+                return builder
+            },
+
+            in: (column: string, values: any[]) => {
+                const encodedValues = values.map(v => encodeURIComponent(String(v))).join(',')
+                filters.push(`${column}=in.(${encodedValues})`)
                 return builder
             },
 
@@ -226,10 +245,14 @@ export const supabase = {
                 })
             },
 
-            then: async (resolve: any) => {
+            then: (onFulfilled: any, onRejected?: any) => {
                 const params: string[] = [`select=${selectColumns}`, ...filters]
-                const result = await request<any[]>(`${query}?${params.join('&')}`)
-                resolve(result)
+                return request<any[]>(`${query}?${params.join('&')}`).then((res) => {
+                    if (builder._single && res.data && Array.isArray(res.data)) {
+                        return onFulfilled({ data: res.data[0] || null, error: res.error })
+                    }
+                    return onFulfilled(res)
+                }, onRejected)
             }
         }
 
@@ -264,10 +287,18 @@ export const fetchActivitiesForDay = async (userId: string, date: Date): Promise
             const dayStart = startOfDay.getTime()
             const dayEnd = endOfDay.getTime()
 
-            if (act.type === 'sleep' && act.end_time) {
-                const actEnd = new Date(act.end_time).getTime()
-                return actEnd >= dayStart && actEnd <= dayEnd
+            if (act.type === 'sleep') {
+                if (act.end_time) {
+                    // 已完成的睡眠：仅在结束那天显示
+                    const actEnd = new Date(act.end_time).getTime()
+                    return actEnd >= dayStart && actEnd <= dayEnd
+                } else {
+                    // 进行中的睡眠：在开始那天显示
+                    const actStart = new Date(act.start_time).getTime()
+                    return actStart >= dayStart && actStart <= dayEnd
+                }
             } else {
+                // 喂奶、其他记录：按开始时间归属
                 const actStart = new Date(act.start_time).getTime()
                 return actStart >= dayStart && actStart <= dayEnd
             }

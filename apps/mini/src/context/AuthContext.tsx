@@ -9,9 +9,12 @@ interface AuthContextType {
     user: User | null
     session: Session | null
     loading: boolean
+    babyConfig: { name: string | null; birthDate: string | null }
     signInWithPassword: (email: string, password: string) => Promise<void>
     signInAnonymously: () => Promise<void>
     signOut: () => Promise<void>
+    refreshBabyConfig: () => Promise<void>
+    calculateBabyAge: (date?: Date) => { months: number; days: number } | null
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -20,6 +23,52 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const [user, setUser] = useState<User | null>(null)
     const [session, setSession] = useState<Session | null>(null)
     const [loading, setLoading] = useState(true)
+    const [babyConfig, setBabyConfig] = useState<{ name: string | null; birthDate: string | null }>({
+        name: null,
+        birthDate: null
+    })
+
+    const refreshBabyConfig = async () => {
+        if (!user) return
+        try {
+            const { data } = await supabase
+                .from('user_config')
+                .select('key, value')
+                .eq('user_id', user.id)
+                .in('key', ['baby_name', 'baby_birth_date'])
+
+            if (data && Array.isArray(data)) {
+                let name = null
+                let birthDate = null
+                data.forEach((item: any) => {
+                    if (item.key === 'baby_name') name = item.value
+                    if (item.key === 'baby_birth_date') birthDate = item.value
+                })
+                setBabyConfig({ name, birthDate })
+            }
+        } catch (e) {
+            console.error('Refresh baby config error:', e)
+        }
+    }
+
+    const calculateBabyAge = (targetDate: Date = new Date()) => {
+        if (!babyConfig.birthDate) return null
+        const birth = new Date(babyConfig.birthDate)
+        const today = new Date(targetDate)
+        today.setHours(0, 0, 0, 0)
+        birth.setHours(0, 0, 0, 0)
+
+        let months = (today.getFullYear() - birth.getFullYear()) * 12 + (today.getMonth() - birth.getMonth())
+        let days = today.getDate() - birth.getDate()
+
+        if (days < 0) {
+            months--
+            const lastMonth = new Date(today.getFullYear(), today.getMonth(), 0)
+            days += lastMonth.getDate()
+        }
+
+        return { months, days }
+    }
 
     useEffect(() => {
         // 获取初始会话
@@ -39,6 +88,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
         return () => subscription.unsubscribe()
     }, [])
+
+    useEffect(() => {
+        if (user) {
+            refreshBabyConfig()
+        } else {
+            setBabyConfig({ name: null, birthDate: null })
+        }
+    }, [user])
 
     // 邮箱密码登录
     const signInWithPassword = async (email: string, password: string) => {
@@ -128,7 +185,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
 
     return (
-        <AuthContext.Provider value={{ user, session, loading, signInWithPassword, signInAnonymously, signOut }}>
+        <AuthContext.Provider value={{
+            user,
+            session,
+            loading,
+            babyConfig,
+            signInWithPassword,
+            signInAnonymously,
+            signOut,
+            refreshBabyConfig,
+            calculateBabyAge
+        }}>
             {children}
         </AuthContext.Provider>
     )
