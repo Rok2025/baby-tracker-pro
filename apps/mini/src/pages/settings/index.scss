@@ -75,3 +75,28 @@
         transform: scale(0.99);
     }
 }
+
+.value-with-arrow {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+}
+
+.action-text {
+    color: #ff6b6b;
+    font-weight: 700;
+}
+
+.arrow {
+    color: #ccc;
+    font-size: 40rpx;
+    margin-top: -4rpx;
+}
+
+.section-tip {
+    display: block;
+    font-size: 24rpx;
+    color: #bbb;
+    padding: 20rpx 40rpx;
+    line-height: 1.5;
+}

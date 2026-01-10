@@ -1,68 +1,44 @@
-.tab-bar {
+.custom-tab-bar {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    height: 104rpx;
-    background: rgba(255, 255, 255, 0.94);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    height: 100rpx;
+    background: #ffffff;
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    justify-content: space-around;
     padding-bottom: env(safe-area-inset-bottom);
     box-sizing: content-box;
     z-index: 999;
-    box-shadow: 0 -1rpx 20rpx rgba(0, 0, 0, 0.05);
+    border-top: 1rpx solid #f0f0f0;
 }
 
-.tab-bar-border {
-    background-color: rgba(0, 0, 0, 0.04);
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 1rpx;
-    transform: scaleY(0.5);
-}
-
-.tab-bar-content {
+.tab-item {
     flex: 1;
     display: flex;
-    align-items: center;
-}
-
-.tab-bar-item {
-    flex: 1;
-    text-align: center;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
     height: 100%;
+    padding: 8rpx 0;
 }
 
-.tab-icon-direct {
+.tab-icon {
     width: 48rpx;
     height: 48rpx;
     margin-bottom: 4rpx;
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    transition: all 0.25s ease;
-
-    &.active {
-        transform: scale(1.05);
-    }
+    transition: transform 0.2s ease;
 }
 
 .tab-text {
-    font-size: 20rpx;
-    color: #999;
-    font-weight: 500;
-    transition: all 0.2s ease;
+    font-size: 22rpx;
+    color: #999999;
+    font-weight: 400;
+    transition: color 0.2s ease;
 
     &.active {
         color: #ff6b6b;
-        font-weight: 600;
+        font-weight: 500;
     }
 }

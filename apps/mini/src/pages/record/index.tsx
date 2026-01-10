@@ -1,9 +1,11 @@
 import { View, Text, Button, Input, Picker } from '@tarojs/components'
 import { useState, useEffect } from 'react'
-import Taro, { useRouter } from '@tarojs/taro'
+import Taro, { useRouter, useDidShow } from '@tarojs/taro'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
+import LoginComponent from '../../components/Login'
 import './index.scss'
+
 
 type RecordType = 'feeding' | 'sleep'
 
@@ -18,6 +20,15 @@ export default function Record() {
     const [loading, setLoading] = useState(false)
     const [fetching, setFetching] = useState(!!id)
 
+    // 设置底部导航选中状态
+    useDidShow(() => {
+        const page = Taro.getCurrentPages().pop()
+        if (page) {
+            const tabBar = Taro.getTabBar<{ setSelected: (index: number) => void }>(page as any)
+            if (tabBar) tabBar.setSelected(1)
+        }
+    })
+
     // 时间选择
     const now = new Date()
     const [startTime, setStartTime] = useState(
@@ -28,6 +39,10 @@ export default function Record() {
 
     // 如果有 ID，说明是编辑模式，加载数据
     useEffect(() => {
+        if (!loading && !session) {
+            Taro.reLaunch({ url: '/pages/login/index' })
+            return
+        }
         if (!id || !session?.user) return
 
         const loadRecord = async () => {
@@ -139,20 +154,15 @@ export default function Record() {
         }
     }
 
-    if (!session) {
-        return (
-            <View className='record-page'>
-                <View className='not-logged-in'>
-                    <Text>请先登录</Text>
-                </View>
-            </View>
-        )
+    if (!session && !loading) {
+        return <LoginComponent />
     }
 
-    if (fetching) {
+    if (fetching || loading) {
         return (
             <View className='record-page'>
-                <View className='loading'>
+                <View className='loading-container'>
+                    <View className='loading-spinner' />
                     <Text>加载中...</Text>
                 </View>
             </View>

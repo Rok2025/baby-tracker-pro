@@ -1,0 +1,150 @@
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 60rpx;
+  background: linear-gradient(180deg, #fff5f5 0%, #ffffff 30%);
+}
+
+.login-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 100rpx 0 80rpx;
+}
+
+.logo-placeholder {
+  font-size: 140rpx;
+  margin-bottom: 40rpx;
+}
+
+.app-title {
+  font-size: 56rpx;
+  font-weight: 900;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+.app-subtitle {
+  font-size: 32rpx;
+  color: #888;
+  font-weight: 500;
+}
+
+.login-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.features {
+  display: flex;
+  justify-content: space-around;
+  padding: 60rpx 0;
+}
+
+.feature-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.feature-icon {
+  font-size: 80rpx;
+}
+
+.feature-text {
+  font-size: 28rpx;
+  color: #666;
+  font-weight: 600;
+}
+
+/* Email Form */
+.email-form {
+  display: flex;
+  flex-direction: column;
+  gap: 40rpx;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.label {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #444;
+  padding-left: 8rpx;
+}
+
+.input {
+  background: #fff;
+  padding: 32rpx 40rpx;
+  border-radius: 24rpx;
+  font-size: 36rpx;
+  border: 2rpx solid #eee;
+  height: auto;
+}
+
+.login-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 32rpx;
+  padding-bottom: 60rpx;
+}
+
+.login-btn {
+  width: 100%;
+  height: 110rpx;
+  line-height: 110rpx;
+  border-radius: 55rpx;
+  font-size: 36rpx;
+  font-weight: 900;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &::after {
+    border: none;
+  }
+
+  &:active {
+    opacity: 0.8;
+    transform: scale(0.98);
+  }
+}
+
+.account-btn {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ffa07a 100%);
+  color: #fff;
+  box-shadow: 0 10rpx 30rpx rgba(255, 107, 107, 0.3);
+}
+
+.guest-btn {
+  background: #f8f9fa;
+  color: #666;
+}
+
+.email-btn {
+  background: #ff6b6b;
+  color: #fff;
+}
+
+.back-link {
+  text-align: center;
+  padding: 20rpx;
+  color: #999;
+  font-size: 30rpx;
+}
+
+.login-tip {
+  text-align: center;
+  font-size: 24rpx;
+  color: #bbb;
+  margin-top: 20rpx;
+}

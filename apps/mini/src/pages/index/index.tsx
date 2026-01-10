@@ -3,12 +3,13 @@ import { useState, useEffect } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { supabase, fetchActivitiesForDay, Activity } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
+import LoginComponent from '../../components/Login'
 import './index.scss'
 
 export default function Index() {
-  const { session, babyConfig, calculateBabyAge } = useAuth()
+  const { session, babyConfig, calculateBabyAge, loading: authLoading } = useAuth()
   const [activities, setActivities] = useState<Activity[]>([])
-  const [loading, setLoading] = useState(true)
+  const [dataLoading, setDataLoading] = useState(false)
   const [today, setToday] = useState(new Date())
 
   // Helper to format date as yyyy-MM-dd
@@ -25,7 +26,7 @@ export default function Index() {
   const fetchActivities = async () => {
     if (!session?.user) return
 
-    setLoading(true)
+    setDataLoading(true)
     try {
       const data = await fetchActivitiesForDay(session.user.id, today)
 
@@ -53,15 +54,23 @@ export default function Index() {
     } catch (error) {
       console.error('Fetch error:', error)
     }
-    setLoading(false)
+    setDataLoading(false)
   }
 
   useDidShow(() => {
     fetchActivities()
+    // 设置底部导航选中状态
+    const page = Taro.getCurrentPages().pop()
+    if (page) {
+      const tabBar = Taro.getTabBar<{ setSelected: (index: number) => void }>(page as any)
+      if (tabBar) tabBar.setSelected(0)
+    }
   })
 
   useEffect(() => {
-    fetchActivities()
+    if (session) {
+      fetchActivities()
+    }
   }, [today, session])
 
   const handleDateChange = (e) => {
@@ -149,7 +158,8 @@ export default function Index() {
       milk: summary.milk,
       sleep: sleepStr,
       milkPercent: Math.min(100, (summary.milk / 1000) * 100),
-      sleepPercent: Math.min(100, (summary.sleep / 960) * 100)
+      // 睡眠目标：12小时 = 720分钟（适合大多数月龄宝宝）
+      sleepPercent: Math.min(100, (summary.sleep / 720) * 100)
     }
   }
 
@@ -197,14 +207,17 @@ export default function Index() {
     return `${mins}分`
   }
 
-  if (!session) {
+  // 仅在 AuthContext 还在初始化时显示加载中
+  if (authLoading) {
     return (
-      <View className='dashboard'>
-        <View className='not-logged-in'>
-          <Text className='tip'>请先登录</Text>
-        </View>
+      <View className='dashboard-loading'>
+        <View className='loading-spinner' />
       </View>
     )
+  }
+
+  if (!session) {
+    return <LoginComponent />
   }
 
   return (
@@ -262,7 +275,7 @@ export default function Index() {
 
         {/* Activity List */}
         <View className='activity-section'>
-          {loading ? (
+          {dataLoading ? (
             <View className='loading'>
               <Text>加载中...</Text>
             </View>

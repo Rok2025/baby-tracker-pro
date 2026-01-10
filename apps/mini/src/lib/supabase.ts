@@ -6,10 +6,21 @@
 declare const wx: any
 
 const SUPABASE_URL = 'https://ffarxgtwvbhpextaujuw.supabase.co'
-const SUPABASE_ANON_KEY = 'sb_publishable_PgBEgkYnCUC_TRMHNcm6aw_Iyzm0GIh'
+// const SUPABASE_ANON_KEY = 'sb_publishable_PgBEgkYnCUC_TRMHNcm6aw_Iyzm0GIh'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZmYXJ4Z3R3dmJocGV4dGF1anV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NTQ4MDYsImV4cCI6MjA4MjUzMDgwNn0.J5ExQzElaDoEOtSw5Dcwjkd9_lhX8GJgkwU99MEgNRQ'
 
-// 存储 session
+
+// 存储 session - 启动时从本地存储中恢复
 let currentSession: any = null
+try {
+    const storedSession = wx.getStorageSync('supabase_session')
+    if (storedSession) {
+        currentSession = JSON.parse(storedSession)
+        console.log('[Supabase] Restored session from storage')
+    }
+} catch (e) {
+    console.error('[Supabase] Failed to restore session:', e)
+}
 
 /**
  * 发起 Supabase REST API 请求
@@ -31,8 +42,13 @@ const request = <T = any>(
         }
 
         // 添加认证 token
-        if (currentSession?.access_token) {
+        // 如果是本地测试 token (local_token_)，不要发送给 Supabase，否则会报 JWT 格式错误
+        if (currentSession?.access_token && currentSession.access_token.startsWith('eyJ')) {
             headers['Authorization'] = `Bearer ${currentSession.access_token}`
+        } else if (SUPABASE_ANON_KEY.startsWith('eyJ') && !options.headers?.Authorization) {
+            // 只有当 ANON_KEY 确实是 JWT 时才作为 Bearer token 自动添加
+            // 否则（如使用 sb_publishable_ 格式），则只依赖 apikey 头，不发送 Authorization
+            headers['Authorization'] = `Bearer ${SUPABASE_ANON_KEY}`
         }
 
         wx.request({
@@ -156,6 +172,55 @@ export const auth = {
             console.error('Remove session failed:', e)
         }
         return { error: null }
+    },
+
+    /**
+     * 验证 OTP / Magic Link Token
+     * 注意：使用 POST 方式直接验证，避免 Site URL 重定向问题
+     */
+    verifyOtp: async ({ token_hash, type }: { token_hash: string, type: 'magiclink' | 'recovery' | 'invite' }) => {
+        const result = await request<any>(`/auth/v1/verify`, {
+            method: 'POST',
+            body: {
+                token_hash,
+                type
+            }
+        })
+
+        if (result.error) return { data: { user: null, session: null }, error: result.error }
+
+        if (result.data) {
+            currentSession = {
+                access_token: result.data.access_token,
+                refresh_token: result.data.refresh_token,
+                user: result.data.user
+            }
+            try {
+                wx.setStorageSync('supabase_session', JSON.stringify(currentSession))
+            } catch (e) {
+                console.error('Save session failed:', e)
+            }
+        }
+
+        return {
+            data: { user: currentSession?.user, session: currentSession },
+            error: null
+        }
+    },
+
+    /**
+     * 获取当前用户信息 (刷新 Token)
+     */
+    getUser: async (token?: string) => {
+        const targetToken = token || currentSession?.access_token
+        if (!targetToken) return { data: { user: null }, error: 'No token' }
+
+        const result = await request<any>('/auth/v1/user', {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${targetToken}` }
+        })
+
+        return result
     }
 }
 
@@ -174,6 +239,7 @@ export const supabase = {
     auth,
 
     from: (table: string) => {
+        // ... (existing from logic)
         let query = `/rest/v1/${table}`
         const filters: string[] = []
         let selectColumns = '*'
@@ -257,6 +323,19 @@ export const supabase = {
         }
 
         return builder
+    },
+
+    /**
+     * 调用 Supabase Edge Function
+     */
+    functions: {
+        invoke: async <T = any>(functionName: string, { body, headers }: { body?: any, headers?: Record<string, string> } = {}) => {
+            return request<T>(`/functions/v1/${functionName}`, {
+                method: 'POST',
+                body,
+                headers
+            })
+        }
     }
 }
 
