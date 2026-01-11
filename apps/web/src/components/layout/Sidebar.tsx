@@ -26,6 +26,8 @@ export function Sidebar() {
             return
         }
 
+        const userId = user.id
+
         async function fetchTodayStats() {
             const now = new Date()
             const startOfDay = new Date(now)
@@ -36,7 +38,7 @@ export function Sidebar() {
             const { data: activities, error } = await supabase
                 .from("activities")
                 .select("*")
-                .eq("user_id", user.id)
+                .eq("user_id", userId)
                 .lte("start_time", endOfDay.toISOString())
                 .or(`end_time.gte.${startOfDay.toISOString()},end_time.is.null`)
 
