@@ -58,10 +58,15 @@ export const fetchActivitiesForDay = async (
     // 检查缓存
     if (options.useCache && cache.has(cacheKey)) {
         console.log('[Cache] Hit:', cacheKey)
-        return cache.get(cacheKey)
+        const cached = cache.get(cacheKey)
+        if (cached) return cached
     }
 
+    console.log('[Supabase] Fetching activities for User:', userId, 'Date:', startOfDay.toISOString())
+
     const db = getSupabase()
+
+    // 使用稳健的小程序同款查询逻辑
     const { data, error } = await db
         .from("activities")
         .select("*")
@@ -71,25 +76,36 @@ export const fetchActivitiesForDay = async (
         .order("start_time", { ascending: false })
         .limit(options.limit)
 
-    if (error) throw error
+    if (error) {
+        console.error('[Supabase] Query error:', error)
+        throw error
+    }
 
-    // 客户端过滤：
-    // - 喂奶/其他记录：按 start_time 归属日期
-    // - 睡眠记录：有 end_time 时按 end_time 归属日期（跨天归属于醒来那天）
+    console.log('[Supabase] Raw records from DB:', data?.length || 0)
+
+    // 客户端过滤：与小程序逻辑严格同步
     const filtered = (data || []).filter((act: Activity) => {
         const dayStart = startOfDay.getTime()
         const dayEnd = endOfDay.getTime()
 
-        if (act.type === 'sleep' && act.end_time) {
-            // 完成的睡眠：归属于醒来的那天
-            const actEnd = new Date(act.end_time).getTime()
-            return actEnd >= dayStart && actEnd <= dayEnd
+        if (act.type === 'sleep') {
+            if (act.end_time) {
+                // 已完成的睡眠：仅在结束那天显示
+                const actEnd = new Date(act.end_time).getTime()
+                return actEnd >= dayStart && actEnd <= dayEnd
+            } else {
+                // 进行中的睡眠：在开始那天显示
+                const actStart = new Date(act.start_time).getTime()
+                return actStart >= dayStart && actStart <= dayEnd
+            }
         } else {
-            // 喂奶、其他记录、进行中的睡眠：按开始时间归属
+            // 喂奶、其他记录：按开始时间归属
             const actStart = new Date(act.start_time).getTime()
             return actStart >= dayStart && actStart <= dayEnd
         }
     })
+
+    console.log('[Supabase] Records after filter:', filtered.length)
 
     // 缓存结果，5分钟过期
     cache.set(cacheKey, filtered, 5 * 60 * 1000)

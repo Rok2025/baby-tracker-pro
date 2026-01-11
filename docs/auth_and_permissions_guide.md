@@ -27,6 +27,16 @@
    - 在绑定前，必须查询 `auth.identities` 确保该微信号未被其他账号占用。
    - 使用 SQL 查询：`select user_id from auth.identities where provider = 'wechat' and identity_data->>'sub' = $openid`。
 
+### 2.4 邮箱注册功能
+**问题**：小程序默认可能未提供完整的邮箱注册流程。
+
+**解决方案**：
+1. **Supabase Adapter**：
+   - 在 `src/lib/supabase.ts` 中实现 `signUp` 方法，调用 `/auth/v1/signup` 接口。
+2. **UI 交互**：
+   - 改造 Login 组件，支持"登录/注册"模式切换。
+   - 增加 `signUp` 到 `AuthContext`，处理注册后的邮箱验证提示或自动登录。
+
 ### 2.2 权限控制 (RLS Policies)
 **问题**：用户不仅需要访问自己的数据，还需要访问"家庭成员"（即同一个宝宝）的数据。
 
