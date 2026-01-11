@@ -5,22 +5,32 @@ import { useAuth } from '../../context/AuthContext'
 import './index.scss'
 
 export default function Login() {
-    const { signInWithPassword, signInAnonymously, signInWithWechat, loading } = useAuth()
+    const { signInWithPassword, signUp, signInAnonymously, signInWithWechat, loading } = useAuth()
 
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [showEmailForm, setShowEmailForm] = useState(false)
+    const [isRegister, setIsRegister] = useState(false)
 
-    const handleEmailLogin = async () => {
+    const handleEmailAuth = async () => {
         if (!email || !password) {
             Taro.showToast({ title: '请填写邮箱和密码', icon: 'none' })
             return
         }
-        await signInWithPassword(email, password)
+
+        if (isRegister) {
+            await signUp(email, password)
+        } else {
+            await signInWithPassword(email, password)
+        }
     }
 
     const handleQuickLogin = () => {
         signInAnonymously()
+    }
+
+    const toggleMode = () => {
+        setIsRegister(!isRegister)
     }
 
     return (
@@ -49,6 +59,9 @@ export default function Login() {
                     </View>
                 ) : (
                     <View className='email-form'>
+                        <View className='form-header'>
+                            <Text className='form-title'>{isRegister ? '注册账号' : '邮箱登录'}</Text>
+                        </View>
                         <View className='form-group'>
                             <Text className='label'>邮箱</Text>
                             <Input
@@ -70,6 +83,11 @@ export default function Login() {
                                 className='input'
                             />
                         </View>
+                        <View className='form-actions'>
+                            <Text className='switch-mode-btn' onClick={toggleMode}>
+                                {isRegister ? '已有账号？去登录' : '没有账号？去注册'}
+                            </Text>
+                        </View>
                     </View>
                 )}
             </View>
@@ -79,13 +97,16 @@ export default function Login() {
                     <>
                         <Button
                             className='login-btn email-btn'
-                            onClick={handleEmailLogin}
+                            onClick={handleEmailAuth}
                             loading={loading}
                             disabled={loading}
                         >
-                            登录
+                            {isRegister ? '注册' : '登录'}
                         </Button>
-                        <View className='back-link' onClick={() => setShowEmailForm(false)}>
+                        <View className='back-link' onClick={() => {
+                            setShowEmailForm(false)
+                            setIsRegister(false)
+                        }}>
                             <Text>← 返回</Text>
                         </View>
                     </>
@@ -95,7 +116,7 @@ export default function Login() {
                             className='login-btn account-btn'
                             onClick={() => setShowEmailForm(true)}
                         >
-                            使用已有账号登录
+                            使用账号登录/注册
                         </Button>
                         <Button
                             className='login-btn wechat-btn'
@@ -103,7 +124,7 @@ export default function Login() {
                             loading={loading}
                             disabled={loading}
                         >
-                            微信登录
+                            微信一键登录
                         </Button>
                         <Button
                             className='login-btn guest-btn'

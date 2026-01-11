@@ -139,6 +139,40 @@ export const auth = {
         }
     },
 
+    // 邮箱注册
+    signUp: async ({ email, password }: { email: string; password: string }) => {
+        const result = await request<any>('/auth/v1/signup', {
+            method: 'POST',
+            body: { email, password }
+        })
+
+        if (result.error) {
+            return { data: { user: null, session: null }, error: result.error }
+        }
+
+        // 注册成功后，Supabase 可能返回 session (如果不需要验证) 或不返回 (如果需要验证)
+        if (result.data) {
+            if (result.data.session) {
+                currentSession = {
+                    access_token: result.data.access_token,
+                    refresh_token: result.data.refresh_token,
+                    user: result.data.user
+                }
+                try {
+                    wx.setStorageSync('supabase_session', JSON.stringify(currentSession))
+                } catch (e) {
+                    console.error('Save session failed:', e)
+                }
+            }
+            return {
+                data: { user: result.data.user, session: currentSession },
+                error: null
+            }
+        }
+
+        return { data: { user: null, session: null }, error: 'Unknown registration error' }
+    },
+
     signInAnonymously: async () => {
         // 简化模式：创建本地 session（保留作为备选）
         const tempUserId = 'wx_user_' + Date.now().toString(36)

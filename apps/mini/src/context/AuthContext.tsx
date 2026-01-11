@@ -15,6 +15,7 @@ interface AuthContextType {
     babyConfig: { name: string | null; birthDate: string | null }
     wechatBindingStatus: WechatBindingStatus
     signInWithPassword: (email: string, password: string) => Promise<void>
+    signUp: (email: string, password: string) => Promise<void>
     signInAnonymously: () => Promise<void>
     signInWithWechat: () => Promise<void>
     bindWechat: () => Promise<void>
@@ -183,6 +184,54 @@ export function AuthProvider({ children }: PropsWithChildren) {
             console.error('Sign in error:', e)
             Taro.showToast({
                 title: '登录失败',
+                icon: 'error',
+            })
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    // 邮箱注册
+    const signUp = async (email: string, password: string) => {
+        setLoading(true)
+        try {
+            const { data, error } = await supabase.auth.signUp({
+                email,
+                password,
+            })
+
+            if (error) {
+                console.error('Sign up error:', error)
+                Taro.showToast({
+                    title: error.message || '注册失败',
+                    icon: 'none',
+                })
+                return
+            }
+
+            console.log('Signed up:', data.user?.id)
+
+            if (data.user && !data.session) {
+                Taro.showToast({
+                    title: '注册成功，请查收邮件验证',
+                    icon: 'none',
+                    duration: 3000
+                })
+            } else {
+                setSession(data.session)
+                setUser(data.user)
+                Taro.showToast({
+                    title: '注册成功',
+                    icon: 'success',
+                })
+                setTimeout(() => {
+                    Taro.switchTab({ url: '/pages/index/index' })
+                }, 500)
+            }
+        } catch (e) {
+            console.error('Sign up error:', e)
+            Taro.showToast({
+                title: '注册失败',
                 icon: 'error',
             })
         } finally {
@@ -362,6 +411,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
             babyConfig,
             wechatBindingStatus,
             signInWithPassword,
+            signUp,
             signInAnonymously,
             signInWithWechat,
             bindWechat,
