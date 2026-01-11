@@ -21,6 +21,11 @@ export function Sidebar() {
     const [stats, setStats] = useState({ milk: 0, sleepMins: 0 })
 
     useEffect(() => {
+        if (!user) {
+            setStats({ milk: 0, sleepMins: 0 })
+            return
+        }
+
         async function fetchTodayStats() {
             const now = new Date()
             const startOfDay = new Date(now)
@@ -31,6 +36,7 @@ export function Sidebar() {
             const { data: activities, error } = await supabase
                 .from("activities")
                 .select("*")
+                .eq("user_id", user.id)
                 .lte("start_time", endOfDay.toISOString())
                 .or(`end_time.gte.${startOfDay.toISOString()},end_time.is.null`)
 
@@ -66,9 +72,9 @@ export function Sidebar() {
 
         fetchTodayStats()
         // Simple polling to keep it fresh
-        const interval = setInterval(fetchTodayStats, 60000) // Increased interval to 1 min to reduce load
+        const interval = setInterval(fetchTodayStats, 60000)
         return () => clearInterval(interval)
-    }, [])
+    }, [user])
 
     const sleepHours = Math.floor(stats.sleepMins / 60)
     const sleepMins = Math.round(stats.sleepMins % 60)

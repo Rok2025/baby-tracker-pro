@@ -45,22 +45,12 @@ export type UserConfig = {
 export const fetchActivitiesForDay = async (
     userId: string,
     date: Date,
-    options = { useCache: true, limit: 100 }
+    options = { limit: 100 }
 ) => {
     const startOfDay = new Date(date)
     startOfDay.setHours(0, 0, 0, 0)
     const endOfDay = new Date(date)
     endOfDay.setHours(23, 59, 59, 999)
-
-    // 生成缓存key
-    const cacheKey = `activities_${userId}_${startOfDay.toISOString()}`
-
-    // 检查缓存
-    if (options.useCache && cache.has(cacheKey)) {
-        console.log('[Cache] Hit:', cacheKey)
-        const cached = cache.get(cacheKey)
-        if (cached) return cached
-    }
 
     console.log('[Supabase] Fetching activities for User:', userId, 'Date:', startOfDay.toISOString())
 
@@ -107,22 +97,14 @@ export const fetchActivitiesForDay = async (
 
     console.log('[Supabase] Records after filter:', filtered.length)
 
-    // 缓存结果，5分钟过期
-    cache.set(cacheKey, filtered, 5 * 60 * 1000)
-    console.log('[Cache] Set:', cacheKey)
-
     return filtered
 }
 
 /**
- * 失效指定日期的活动缓存
+ * 失效指定日期的活动缓存 (不再使用，保留空函数以防报错)
  */
 export const invalidateActivityCache = (userId: string, date: Date) => {
-    const startOfDay = new Date(date)
-    startOfDay.setHours(0, 0, 0, 0)
-    const cacheKey = `activities_${userId}_${startOfDay.toISOString()}`
-    cache.delete(cacheKey)
-    console.log('[Cache] Invalidated:', cacheKey)
+    // 缓存已移除
 }
 
 /**
