@@ -144,6 +144,21 @@ export { translations }
 2. 将所有翻译资源迁移到统一位置
 3. 更新 Web/Mobile/Mini 三端引用
 
+### 1.3 部署环境与路由兼容性 (GitHub Pages)
+
+**问题分析：**
+在 GitHub Pages 等非根目录下部署时，路由行为可能与本地开发环境不一致：
+- **尾部斜杠 (Trailing Slashes)**：`next.config.js` 配置了 `trailingSlash: true`，导致 `/login` 被重定向到 `/login/`。
+- **Auth 拦截失效**：原有的 `AuthProvider` 仅监听了 `/login` 路径，导致在 `/login/` 下登录成功后无法正确刷新页面状态或跳转。
+
+**解决方案：**
+- **AuthProvider 兼容性**：在 `AuthProvider.tsx` 中同时匹配 `/login` 和 `/login/`。
+- **Next.js 配置**：确保 `basePath` 和 `assetPrefix` 正确设置为项目子目录名称（如 `/baby-tracker-pro`）。
+
+**优势：**
+- 确保生产环境下登录、刷新、删除等操作的稳定性。
+- 解决“登录后仍停留在登录页”和“删除弹出层消失”的环境相关 Bug。
+
 ---
 
 ### 2. 性能优化
@@ -219,12 +234,14 @@ export function ActivityFeed({ activities }: { activities: Activity[] }) {
 
 ---
 
-#### 2.2 优化 Supabase 查询
+#### 2.2 优化 Supabase 查询（已废弃/移除）
 
-**问题分析：**
-当前每次加载都获取完整数据，没有缓存机制
+> [!WARNING]
+> **状态：已于 2026-01-11 移除**
+> **原因**：引入 5 分钟客户端缓存后，会导致多端（如网页端与小程序端）数据同步延迟。为了确保全家多设备记录的绝对实时性，已移除本地缓存逻辑，恢复为实时后端查询。
 
-**解决方案：**
+**原方案（仅作参考）：**
+
 
 ```typescript
 // packages/api/src/cache.ts

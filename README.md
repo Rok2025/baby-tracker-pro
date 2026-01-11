@@ -1,6 +1,6 @@
 # 👶 BabyTracker Pro (宝宝成长助手)
 
-[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)](package.json)
 [![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-Database-green)](https://supabase.com/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)

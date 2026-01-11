@@ -1,6 +1,13 @@
-# Changelog
+# 更新日志 (CHANGELOG)
 
 All notable changes to this project will be documented in this file.
+
+## [1.3.1] - 2026-01-11
+### 修复
+- **Web 端同步**：移除 API 层 5 分钟缓存，确保全家多端同步 100% 实时。
+- **构建错误**：修复了 `Sidebar.tsx` 中可能导致生产构建失败的 TypeScript 类型检查。
+- **环境兼容性**：修复了 GitHub Pages 下带尾部斜杠路径 (`/login/`) 的跳转失效问题。
+- **数据准确性**：修正侧边栏统计逻辑，补齐 `user_id` 过滤。
 
 ## [1.1.0] - 2025-12-31
 
