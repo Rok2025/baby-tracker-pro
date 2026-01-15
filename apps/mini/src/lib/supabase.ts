@@ -12,6 +12,23 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 // 存储 session - 启动时从本地存储中恢复
 let currentSession: any = null
+
+const saveSession = (session: any) => {
+    if (!session) return
+    // Ensure expires_at is set if not present (def 1 hour)
+    if (!session.expires_at) {
+        // expires_in is usually in seconds
+        const expiresIn = session.expires_in || 3600
+        session.expires_at = Math.floor(Date.now() / 1000) + expiresIn
+    }
+    currentSession = session
+    try {
+        wx.setStorageSync('supabase_session', JSON.stringify(currentSession))
+    } catch (e) {
+        console.error('Save session failed:', e)
+    }
+}
+
 try {
     const storedSession = wx.getStorageSync('supabase_session')
     if (storedSession) {
@@ -20,6 +37,45 @@ try {
     }
 } catch (e) {
     console.error('[Supabase] Failed to restore session:', e)
+}
+
+/**
+ * 内部使用的刷新 Session 函数
+ */
+const _refreshSession = async () => {
+    if (!currentSession?.refresh_token) return { data: null, error: 'No refresh token' }
+
+    console.log('[Supabase] Refreshing session...')
+    // Manually construct request to avoid circular dependency or infinite loop in request()
+    return new Promise<{ data: any, error: any }>((resolve) => {
+        wx.request({
+            url: `${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,
+            method: 'POST',
+            header: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Content-Type': 'application/json'
+            },
+            data: { refresh_token: currentSession.refresh_token },
+            success: (res: any) => {
+                if (res.statusCode >= 200 && res.statusCode < 300 && res.data) {
+                    saveSession({
+                        access_token: res.data.access_token,
+                        refresh_token: res.data.refresh_token,
+                        user: res.data.user,
+                        expires_in: res.data.expires_in
+                    })
+                    resolve({ data: res.data, error: null })
+                } else {
+                    console.error('[Supabase] Refresh session failed:', res.data)
+                    resolve({ data: null, error: res.data || 'Refresh failed' })
+                }
+            },
+            fail: (err: any) => {
+                console.error('[Supabase] Refresh request failed:', err)
+                resolve({ data: null, error: err })
+            }
+        })
+    })
 }
 
 /**
@@ -34,12 +90,27 @@ const request = <T = any>(
     } = {}
 ): Promise<{ data: T | null; error: any }> => {
     return new Promise((resolve) => {
+        // Tunnel PATCH and DELETE via POST to avoid platform limitations
+        let method = options.method || 'GET'
         const headers: Record<string, string> = {
             'apikey': SUPABASE_ANON_KEY,
             'Content-Type': 'application/json',
             'Prefer': 'return=representation',
             ...options.headers
         }
+
+        // Tunneling removed: Modern WeChat supports PATCH/DELETE natively.
+        // if (method === 'PATCH' || method === 'DELETE') {
+        //    headers['X-HTTP-Method-Override'] = method
+        //    method = 'POST'
+        // }
+
+        console.log('[Supabase Debug] Request:', {
+            url: `${SUPABASE_URL}${path}`,
+            originalMethod: options.method,
+            actualMethod: method,
+            headers
+        })
 
         // 添加认证 token
         // 如果是本地测试 token (local_token_)，不要发送给 Supabase，否则会报 JWT 格式错误
@@ -53,23 +124,54 @@ const request = <T = any>(
 
         wx.request({
             url: `${SUPABASE_URL}${path}`,
-            method: options.method || 'GET',
+            method: method as any,
             data: options.body,
             header: headers,
-            success: (res: any) => {
+            success: async (res: any) => {
+                // Intercept 401 and try to refresh
+                if (res.statusCode === 401 && !options.headers?.['X-Retry']) {
+                    console.warn('[Supabase] 401 Unauthorized, attempting to refresh token...')
+                    const { error: refreshError } = await _refreshSession()
+
+                    if (!refreshError && currentSession?.access_token) {
+                        console.log('[Supabase] Token refreshed, retrying request...')
+                        // Retry with new token
+                        const retryResult = await request(path, {
+                            ...options,
+                            headers: {
+                                ...options.headers,
+                                'Authorization': `Bearer ${currentSession.access_token}`,
+                                'X-Retry': 'true'
+                            }
+                        })
+                        resolve(retryResult)
+                        return
+                    } else {
+                        console.error('[Supabase] Token refresh failed or no session, returning 401')
+                    }
+                }
+
                 if (res.statusCode >= 200 && res.statusCode < 300) {
                     resolve({ data: res.data, error: null })
                 } else {
+                    console.error('[Supabase Request Failed]', {
+                        url: `${SUPABASE_URL}${path}`,
+                        method,
+                        status: res.statusCode,
+                        data: res.data
+                    })
                     resolve({
                         data: null,
                         error: {
-                            message: res.data?.message || res.data?.error || 'Request failed',
-                            status: res.statusCode
+                            message: res.data?.message || res.data?.error || `Request failed (${res.statusCode})`,
+                            status: res.statusCode,
+                            details: res.data
                         }
                     })
                 }
             },
             fail: (err: any) => {
+                console.error('[Supabase Network Error]', err)
                 resolve({
                     data: null,
                     error: { message: err.errMsg || 'Network error' }
@@ -120,23 +222,23 @@ export const auth = {
         }
 
         if (result.data) {
-            currentSession = {
+            saveSession({
                 access_token: result.data.access_token,
                 refresh_token: result.data.refresh_token,
-                user: result.data.user
-            }
-            // 保存到本地存储
-            try {
-                wx.setStorageSync('supabase_session', JSON.stringify(currentSession))
-            } catch (e) {
-                console.error('Save session failed:', e)
-            }
+                user: result.data.user,
+                expires_in: result.data.expires_in
+            })
         }
 
         return {
             data: { user: currentSession?.user, session: currentSession },
             error: null
         }
+    },
+
+    // 刷新 Session
+    refreshSession: async () => {
+        return _refreshSession()
     },
 
     // 邮箱注册
@@ -153,16 +255,12 @@ export const auth = {
         // 注册成功后，Supabase 可能返回 session (如果不需要验证) 或不返回 (如果需要验证)
         if (result.data) {
             if (result.data.session) {
-                currentSession = {
+                saveSession({
                     access_token: result.data.access_token,
                     refresh_token: result.data.refresh_token,
-                    user: result.data.user
-                }
-                try {
-                    wx.setStorageSync('supabase_session', JSON.stringify(currentSession))
-                } catch (e) {
-                    console.error('Save session failed:', e)
-                }
+                    user: result.data.user,
+                    expires_in: result.data.expires_in
+                })
             }
             return {
                 data: { user: result.data.user, session: currentSession },
@@ -177,20 +275,17 @@ export const auth = {
         // 简化模式：创建本地 session（保留作为备选）
         const tempUserId = 'wx_user_' + Date.now().toString(36)
 
-        currentSession = {
+        const session = {
             access_token: 'local_token_' + tempUserId,
             user: {
                 id: tempUserId,
                 email: null,
                 role: 'authenticated'
-            }
+            },
+            expires_at: Math.floor(Date.now() / 1000) + 3600 * 24 * 365 // 1 year
         }
 
-        try {
-            wx.setStorageSync('supabase_session', JSON.stringify(currentSession))
-        } catch (e) {
-            console.error('Save session failed:', e)
-        }
+        saveSession(session)
 
         return {
             data: { user: currentSession.user, session: currentSession },
@@ -224,16 +319,12 @@ export const auth = {
         if (result.error) return { data: { user: null, session: null }, error: result.error }
 
         if (result.data) {
-            currentSession = {
+            saveSession({
                 access_token: result.data.access_token,
                 refresh_token: result.data.refresh_token,
-                user: result.data.user
-            }
-            try {
-                wx.setStorageSync('supabase_session', JSON.stringify(currentSession))
-            } catch (e) {
-                console.error('Save session failed:', e)
-            }
+                user: result.data.user,
+                expires_in: result.data.expires_in
+            })
         }
 
         return {
@@ -258,28 +349,23 @@ export const auth = {
     }
 }
 
-// 从本地存储恢复 session
-try {
-    const saved = wx.getStorageSync('supabase_session')
-    if (saved) {
-        currentSession = JSON.parse(saved)
-    }
-} catch (e) {
-    console.error('Restore session failed:', e)
-}
+
 
 // Database 模块
 export const supabase = {
     auth,
 
     from: (table: string) => {
-        // ... (existing from logic)
         let query = `/rest/v1/${table}`
         const filters: string[] = []
         let selectColumns = '*'
+        let method: 'GET' | 'POST' | 'PATCH' | 'DELETE' = 'GET'
+        let body: any = undefined
+        let isSingle = false
 
         const builder: any = {
             select: (columns: string = '*') => {
+                method = 'GET'
                 selectColumns = columns
                 return builder
             },
@@ -290,7 +376,8 @@ export const supabase = {
             },
 
             single: () => {
-                builder._single = true
+                isSingle = true
+                filters.push('limit=1') // Optimization for GET
                 return builder
             },
 
@@ -310,9 +397,6 @@ export const supabase = {
             },
 
             or: (filter: string) => {
-                // Do not encode the entire or string as it contains separators like ',' and '.'
-                // The values inside (like ISO dates) are generally safe in PostgREST without encoding,
-                // but we should ideally only encode the value parts. For now, passing raw is safer than encoding the whole thing.
                 filters.push(`or=(${filter})`)
                 return builder
             },
@@ -323,34 +407,55 @@ export const supabase = {
                 return builder
             },
 
-            insert: async (data: any) => {
-                return request(query, {
-                    method: 'POST',
-                    body: data
-                })
+            insert: (data: any) => {
+                method = 'POST'
+                body = data
+                return builder
             },
 
-            update: async (data: any) => {
-                const queryString = filters.length > 0 ? `?${filters.join('&')}` : ''
-                return request(`${query}${queryString}`, {
-                    method: 'PATCH',
-                    body: data
-                })
+            update: (data: any) => {
+                method = 'PATCH'
+                body = data
+                return builder
             },
 
-            delete: async () => {
-                const queryString = filters.length > 0 ? `?${filters.join('&')}` : ''
-                return request(`${query}${queryString}`, {
-                    method: 'DELETE'
-                })
+            delete: () => {
+                method = 'DELETE'
+                body = {} // Ensure valid JSON body for POST tunneling
+                return builder
             },
 
             then: (onFulfilled: any, onRejected?: any) => {
-                const params: string[] = [`select=${selectColumns}`, ...filters]
-                return request<any[]>(`${query}?${params.join('&')}`).then((res) => {
-                    if (builder._single && res.data && Array.isArray(res.data)) {
-                        return onFulfilled({ data: res.data[0] || null, error: res.error })
+                // Construct Query String
+                const queryParams: string[] = [...filters]
+
+                // Only add 'select' if it's a GET request or we want data back (Prefer: return=representation is default)
+                if (method === 'GET') {
+                    queryParams.unshift(`select=${selectColumns}`)
+                } else {
+                    // For POST/PATCH/DELETE, we usually also want the returned data if select was called,
+                    // but usually select() isn't called for these. 
+                    // By default Supabase returns the modified rows if prefer=return=representation is set.
+                }
+
+                const queryString = queryParams.length > 0 ? `?${queryParams.join('&')}` : ''
+                const finalUrl = `${query}${queryString}`
+
+                return request<any[]>(finalUrl, {
+                    method: method,
+                    body: body
+                }).then((res) => {
+                    if (isSingle && res.data && Array.isArray(res.data)) {
+                        // If single() was called, return the first item or null
+                        // Check if operation was not GET (e.g. update/insert), it also returns array by default
+                        return onFulfilled({ data: res.data.length > 0 ? res.data[0] : null, error: res.error })
                     }
+                    if (isSingle && res.data === null && !res.error) {
+                        // Case: single() requested but no data found (and no 406 error from server usually)
+                        // PostgREST with accept: header might behavior differently, but here we manually handle.
+                        return onFulfilled({ data: null, error: res.error })
+                    }
+
                     return onFulfilled(res)
                 }, onRejected)
             }

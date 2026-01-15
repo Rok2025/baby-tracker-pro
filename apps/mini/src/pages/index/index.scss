@@ -188,9 +188,16 @@
     background: #fff;
     border-radius: 32rpx;
     padding: 32rpx;
-    margin-bottom: 20rpx;
+    /* margin-bottom moved to swipe-action-container to fix layout & height issues */
     box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.02);
     align-items: center;
+}
+
+/* Add margin to the SwipeAction component instead */
+.swipe-action-container {
+    margin-bottom: 20rpx;
+    /* Ensure border-radius clip for SwipeAction actions */
+    border-radius: 32rpx;
 }
 
 .type-icon {

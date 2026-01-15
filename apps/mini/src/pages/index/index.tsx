@@ -4,6 +4,8 @@ import Taro, { useDidShow } from '@tarojs/taro'
 import { supabase, fetchActivitiesForDay, Activity } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import LoginComponent from '../../components/Login'
+import SwipeAction from '../../components/SwipeAction'
+import { getIndexShareConfig, getTimelineShareConfig } from '../../utils/shareConfig'
 import './index.scss'
 
 export default function Index() {
@@ -83,42 +85,33 @@ export default function Index() {
     setToday(nextDate)
   }
 
-  const handleActivityClick = (activity: Activity) => {
-    Taro.showActionSheet({
-      itemList: ['修改记录', '删除记录'],
-      success: (res) => {
-        if (res.tapIndex === 0) {
-          // 修改
-          Taro.navigateTo({
-            url: `/pages/record/index?id=${activity.id}`
-          })
-        } else if (res.tapIndex === 1) {
-          // 删除
-          Taro.showModal({
-            title: '确认删除',
-            content: '确定要删除这条记录吗？',
-            success: async (modalRes) => {
-              if (modalRes.confirm) {
-                const { error } = await supabase
-                  .from('activities')
-                  .delete()
-                  .eq('id', activity.id)
+  // 处理编辑记录
+  const handleEdit = (activity: Activity) => {
+    Taro.navigateTo({
+      url: `/pages/edit-record/index?id=${activity.id}`
+    })
+  }
 
-                if (error) {
-                  Taro.showToast({ title: '删除失败', icon: 'error' })
-                } else {
-                  Taro.showToast({ title: '已删除', icon: 'success' })
-                  fetchActivities()
-                }
-              }
-            }
-          })
+  // 处理删除记录
+  const handleDelete = (activity: Activity) => {
+    Taro.showModal({
+      title: '确认删除',
+      content: '确定要删除这条记录吗？',
+      confirmColor: '#FF3B30',
+      success: async (modalRes) => {
+        if (modalRes.confirm) {
+          const { error } = await supabase
+            .from('activities')
+            .delete()
+            .eq('id', activity.id)
+
+          if (error) {
+            Taro.showToast({ title: '删除失败', icon: 'error' })
+          } else {
+            Taro.showToast({ title: '已删除', icon: 'success' })
+            fetchActivities()
+          }
         }
-      },
-      fail: (err) => {
-        // 用户取消或失败，静默处理
-        if (err.errMsg === "showActionSheet:fail cancel") return;
-        console.error("ActionSheet error:", err);
       }
     })
   }
@@ -294,31 +287,33 @@ export default function Index() {
                     <Text className='group-title'>{label}</Text>
                     <View className='activity-list'>
                       {list.map(activity => (
-                        <View
+                        <SwipeAction
                           key={activity.id}
-                          className={`activity-item ${activity.type}`}
-                          onClick={() => handleActivityClick(activity)}
+                          onEdit={() => handleEdit(activity)}
+                          onDelete={() => handleDelete(activity)}
                         >
-                          <View className='icon-col'>
-                            <Text className='type-icon'>{activity.type === 'feeding' ? '🍼' : '😴'}</Text>
-                          </View>
-                          <View className='content-col'>
-                            <View className='activity-main'>
-                              <Text className='activity-time'>
-                                {activity.type === 'sleep'
-                                  ? formatTimeRange(activity.start_time, activity.end_time || null)
-                                  : formatTime(activity.start_time)}
-                              </Text>
-                              <Text className='activity-value'>
-                                {activity.type === 'feeding'
-                                  ? `${activity.volume || 0} ml`
-                                  : activity.end_time ? `(${formatDurationSnippet(activity.start_time, activity.end_time)})` : '进行中'}
-                              </Text>
+                          <View className={`activity-item ${activity.type}`}>
+                            <View className='icon-col'>
+                              <Text className='type-icon'>{activity.type === 'feeding' ? '🍼' : '😴'}</Text>
                             </View>
-                            <Text className='activity-type'>{activity.type === 'feeding' ? '喂奶' : '睡眠'}</Text>
-                            {activity.note && <Text className='activity-note'>{activity.note}</Text>}
+                            <View className='content-col'>
+                              <View className='activity-main'>
+                                <Text className='activity-time'>
+                                  {activity.type === 'sleep'
+                                    ? formatTimeRange(activity.start_time, activity.end_time || null)
+                                    : formatTime(activity.start_time)}
+                                </Text>
+                                <Text className='activity-value'>
+                                  {activity.type === 'feeding'
+                                    ? `${activity.volume || 0} ml`
+                                    : activity.end_time ? `(${formatDurationSnippet(activity.start_time, activity.end_time)})` : '进行中'}
+                                </Text>
+                              </View>
+                              <Text className='activity-type'>{activity.type === 'feeding' ? '喂奶' : '睡眠'}</Text>
+                              {activity.note && <Text className='activity-note'>{activity.note}</Text>}
+                            </View>
                           </View>
-                        </View>
+                        </SwipeAction>
                       ))}
                     </View>
                   </View>
@@ -330,4 +325,23 @@ export default function Index() {
       </View>
     </ScrollView>
   )
+}
+
+// 分享给微信好友
+Index.onShareAppMessage = () => {
+  const config = getIndexShareConfig()
+  return {
+    title: config.title,
+    path: config.path,
+    imageUrl: config.imageUrl
+  }
+}
+
+// 分享到朋友圈
+Index.onShareTimeline = () => {
+  const config = getTimelineShareConfig()
+  return {
+    title: config.title,
+    imageUrl: config.imageUrl
+  }
 }

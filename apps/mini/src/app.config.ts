@@ -3,7 +3,8 @@ export default defineAppConfig({
     'pages/index/index',
     'pages/record/index',
     'pages/settings/index',
-    'pages/login/index'
+    'pages/login/index',
+    'pages/edit-record/index'
   ],
   window: {
     backgroundTextStyle: 'light',
