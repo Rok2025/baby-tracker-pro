@@ -17,6 +17,9 @@ import pkg from "../../../package.json"
 export function Sidebar() {
     const pathname = usePathname()
     const { t } = useLanguage()
+
+
+
     const { user, signOut } = useAuth()
     const [stats, setStats] = useState({ milk: 0, sleepMins: 0 })
 
@@ -86,6 +89,11 @@ export function Sidebar() {
         { name: t("app.settings"), href: "/settings", icon: Settings },
     ]
 
+    // Hide sidebar on login page
+    if (pathname?.startsWith('/login')) {
+        return null
+    }
+
     return (
         <div className="hidden md:flex flex-col w-64 border-r bg-sidebar h-screen sticky top-0">
             <div className="p-6">
@@ -96,9 +104,13 @@ export function Sidebar() {
             <nav className="flex-1 px-4 space-y-2">
                 {navItems.map((item) => {
                     const Icon = item.icon
+                    const normalizedPath = pathname?.endsWith('/') && pathname.length > 1
+                        ? pathname.slice(0, -1)
+                        : (pathname || "")
+
                     const isActive = item.href === "/"
-                        ? pathname === "/"
-                        : pathname.startsWith(item.href)
+                        ? (normalizedPath === "/" || normalizedPath === "")
+                        : normalizedPath.startsWith(item.href)
                     return (
                         <Link
                             key={item.href}

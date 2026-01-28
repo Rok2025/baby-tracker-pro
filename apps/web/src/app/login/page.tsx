@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,6 +17,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
   const { t } = useLanguage()
+  const router = useRouter()
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,6 +38,7 @@ export default function LoginPage() {
         })
         if (error) throw error
         toast.success(t("auth.login_success"))
+        router.push("/")
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Authentication failed"
@@ -53,8 +56,8 @@ export default function LoginPage() {
             {isSignUp ? t("auth.signup_title") : t("auth.login_title")}
           </CardTitle>
           <CardDescription className="text-center">
-            {isSignUp 
-              ? t("auth.signup_subtitle") 
+            {isSignUp
+              ? t("auth.signup_subtitle")
               : t("auth.login_subtitle")}
           </CardDescription>
         </CardHeader>
@@ -64,14 +67,14 @@ export default function LoginPage() {
               <Label htmlFor="email">{t("auth.email")}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="m@example.com" 
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="m@example.com"
                   className="pl-10"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  required 
+                  required
                 />
               </div>
             </div>
@@ -79,18 +82,18 @@ export default function LoginPage() {
               <Label htmlFor="password">{t("auth.password")}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  id="password" 
-                  type="password" 
+                <Input
+                  id="password"
+                  type="password"
                   className="pl-10"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  required 
+                  required
                 />
               </div>
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
+          <CardFooter className="flex flex-col space-y-4 pt-4">
             <Button className="w-full" type="submit" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isSignUp ? t("auth.signup_button") : t("auth.login_button")}
@@ -98,7 +101,7 @@ export default function LoginPage() {
 
             <div className="text-sm text-center text-muted-foreground">
               {isSignUp ? t("auth.have_account") : t("auth.no_account")}{" "}
-              <button 
+              <button
                 type="button"
                 className="text-primary underline underline-offset-4 hover:text-primary/80"
                 onClick={() => setIsSignUp(!isSignUp)}
