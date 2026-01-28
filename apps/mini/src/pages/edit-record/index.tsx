@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabase'
 import './index.scss'
 
-type RecordType = 'feeding' | 'sleep'
+type RecordType = 'feeding' | 'sleep' | 'solid_food' | 'poop'
 
 export default function EditRecord() {
     const { session } = useAuth()
@@ -15,8 +15,41 @@ export default function EditRecord() {
     const [recordType, setRecordType] = useState<RecordType>('feeding')
     const [volume, setVolume] = useState('120')
     const [note, setNote] = useState('')
+
+    // New fields
+    const [foodAmount, setFoodAmount] = useState('')
+    // const [foodType, setFoodType] = useState('') // Removed
+    const [selectedFoods, setSelectedFoods] = useState<string[]>([])
+    const [customFood, setCustomFood] = useState('')
+
+    const defaultFoods = ["米粉", "蛋黄", "苹果泥", "南瓜泥", "青菜粥", "香蕉", "肉泥", "酸奶"]
+
+    const toggleFood = (food: string) => {
+        if (selectedFoods.includes(food)) {
+            setSelectedFoods(selectedFoods.filter(f => f !== food))
+        } else {
+            setSelectedFoods([...selectedFoods, food])
+        }
+    }
+
+    const addCustomFood = () => {
+        if (customFood && !selectedFoods.includes(customFood)) {
+            setSelectedFoods([...selectedFoods, customFood])
+            setCustomFood('')
+        }
+    }
+
+    const [poopColor, setPoopColor] = useState('Yellow')
+    const [poopConsistency, setPoopConsistency] = useState('Normal')
+
     const [loading, setLoading] = useState(false)
     const [fetching, setFetching] = useState(true)
+
+    // Colors and consistencies for Picker
+    const poopColors = ['Yellow', 'Green', 'Brown', 'Black', 'Red', 'White/Clay']
+    const poopColorLabels = ['Yellow (黄)', 'Green (绿)', 'Brown (褐)', 'Black (黑)', 'Red (红)', 'White (灰白)']
+    const poopConsistencies = ['Watery', 'Loose/Mushy', 'Soft', 'Normal', 'Hard', 'Pellets']
+    const poopConsistencyLabels = ['Watery (水样)', 'Loose (糊状)', 'Soft (软便)', 'Normal (正常)', 'Hard (硬便)', 'Pellets (羊屎蛋)']
 
     // 时间选择
     const [startTime, setStartTime] = useState('')
@@ -47,6 +80,25 @@ export default function EditRecord() {
                     setRecordType(data.type)
                     setVolume(data.volume ? String(data.volume) : '120')
                     setNote(data.note || '')
+
+                    if (data.type === 'solid_food') {
+                        setFoodAmount(data.food_amount || '')
+                        // Parse JSON string array if possible, else handle as single string
+                        try {
+                            const parsed = JSON.parse(data.food_type || '[]')
+                            if (Array.isArray(parsed)) {
+                                setSelectedFoods(parsed)
+                            } else if (data.food_type) {
+                                setSelectedFoods([data.food_type])
+                            }
+                        } catch (e) {
+                            if (data.food_type) setSelectedFoods([data.food_type])
+                        }
+                    }
+                    if (data.type === 'poop') {
+                        setPoopColor(data.poop_color || 'Yellow')
+                        setPoopConsistency(data.poop_consistency || 'Normal')
+                    }
 
                     const start = new Date(data.start_time)
                     setStartTime(`${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}`)
@@ -105,13 +157,22 @@ export default function EditRecord() {
                 }
             }
 
-            const payload = {
+            const payload: any = {
                 user_id: session.user.id,
                 type: recordType,
                 start_time: startDate.toISOString(),
                 end_time: endDate?.toISOString() || null,
                 volume: recordType === 'feeding' ? parseInt(volume) : null,
                 note: note || null,
+            }
+
+            if (recordType === 'solid_food') {
+                payload.food_amount = foodAmount
+                payload.food_type = JSON.stringify(selectedFoods)
+            }
+            if (recordType === 'poop') {
+                payload.poop_color = poopColor
+                payload.poop_consistency = poopConsistency
             }
 
             const res = await supabase.from('activities').update(payload).eq('id', id)
@@ -148,42 +209,36 @@ export default function EditRecord() {
         )
     }
 
+    const getTypeIcon = (type: RecordType) => {
+        switch (type) {
+            case 'feeding': return '🍼'
+            case 'sleep': return '😴'
+            case 'solid_food': return '🥣'
+            case 'poop': return '💩'
+            default: return '📝'
+        }
+    }
+
+    const getTypeName = (type: RecordType) => {
+        switch (type) {
+            case 'feeding': return '喂奶记录'
+            case 'sleep': return '睡眠记录'
+            case 'solid_food': return '辅食记录'
+            case 'poop': return '臭臭记录'
+            default: return '记录'
+        }
+    }
+
     return (
         <View className='record-page'>
             {/* 类型显示（不可修改） */}
             <View className='type-display'>
-                <Text className='type-icon'>{recordType === 'feeding' ? '🍼' : '😴'}</Text>
-                <Text className='type-text'>{recordType === 'feeding' ? '喂奶记录' : '睡眠记录'}</Text>
+                <Text className='type-icon'>{getTypeIcon(recordType)}</Text>
+                <Text className='type-text'>{getTypeName(recordType)}</Text>
             </View>
 
             {/* 表单 */}
             <View className='form'>
-                {recordType === 'feeding' ? (
-                    <View className='form-group'>
-                        <Text className='label'>奶量 (ml)</Text>
-                        <View className='volume-input'>
-                            <Input
-                                type='number'
-                                value={volume}
-                                onInput={(e) => setVolume(e.detail.value)}
-                                placeholder='输入奶量'
-                                className='input'
-                            />
-                            <View className='quick-actions'>
-                                {[60, 90, 120, 150, 180].map(v => (
-                                    <View
-                                        key={v}
-                                        className={`quick-btn ${volume === String(v) ? 'active' : ''}`}
-                                        onClick={() => setVolume(String(v))}
-                                    >
-                                        <Text>{v}</Text>
-                                    </View>
-                                ))}
-                            </View>
-                        </View>
-                    </View>
-                ) : null}
-
                 <View className='form-group'>
                     <View className='label-row'>
                         <Text className='label'>开始时间</Text>
@@ -213,6 +268,114 @@ export default function EditRecord() {
                         </View>
                     </Picker>
                 </View>
+
+                {recordType === 'feeding' && (
+                    <View className='form-group'>
+                        <Text className='label'>奶量 (ml)</Text>
+                        <View className='volume-input'>
+                            <Input
+                                type='number'
+                                value={volume}
+                                onInput={(e) => setVolume(e.detail.value)}
+                                placeholder='输入奶量'
+                                className='input'
+                            />
+                            <View className='quick-actions'>
+                                {[60, 90, 120, 150, 180].map(v => (
+                                    <View
+                                        key={v}
+                                        className={`quick-btn ${volume === String(v) ? 'active' : ''}`}
+                                        onClick={() => setVolume(String(v))}
+                                    >
+                                        <Text>{v}</Text>
+                                    </View>
+                                ))}
+                            </View>
+                        </View>
+                    </View>
+                )}
+
+                {recordType === 'solid_food' && (
+                    <>
+                        <View className='form-group'>
+                            <Text className='label'>饭量</Text>
+                            <Input
+                                value={foodAmount}
+                                onInput={(e) => setFoodAmount(e.detail.value)}
+                                placeholder='例如: 30g, 1碗'
+                                className='input'
+                            />
+                        </View>
+                        <View className='form-group'>
+                            <Text className='label'>食物内容</Text>
+                            <View className='food-tags'>
+                                {defaultFoods.map(food => (
+                                    <View
+                                        key={food}
+                                        className={`food-tag ${selectedFoods.includes(food) ? 'active' : ''}`}
+                                        onClick={() => toggleFood(food)}
+                                    >
+                                        <Text>{food}</Text>
+                                    </View>
+                                ))}
+                                {selectedFoods.filter(f => !defaultFoods.includes(f)).map(food => (
+                                    <View
+                                        key={food}
+                                        className='food-tag active'
+                                        onClick={() => toggleFood(food)}
+                                    >
+                                        <Text>{food}</Text>
+                                    </View>
+                                ))}
+                            </View>
+                            <View className='add-food-row'>
+                                <Input
+                                    value={customFood}
+                                    onInput={(e) => setCustomFood(e.detail.value)}
+                                    onConfirm={addCustomFood}
+                                    placeholder='添加其他食物...'
+                                    className='input small-input'
+                                />
+                                <View className='add-btn' onClick={addCustomFood}>
+                                    <Text>+</Text>
+                                </View>
+                            </View>
+                        </View>
+                    </>
+                )}
+
+                {recordType === 'poop' && (
+                    <>
+                        <View className='form-group'>
+                            <Text className='label'>颜色</Text>
+                            <Picker
+                                mode='selector'
+                                range={poopColorLabels}
+                                value={poopColors.indexOf(poopColor)}
+                                onChange={(e) => setPoopColor(poopColors[e.detail.value])}
+                                className='time-picker'
+                            >
+                                <View className='picker-value'>
+                                    <Text>{poopColorLabels[poopColors.indexOf(poopColor)] || poopColor}</Text>
+                                </View>
+                            </Picker>
+                        </View>
+                        <View className='form-group'>
+                            <Text className='label'>性状</Text>
+                            <Picker
+                                mode='selector'
+                                range={poopConsistencyLabels}
+                                value={poopConsistencies.indexOf(poopConsistency)}
+                                onChange={(e) => setPoopConsistency(poopConsistencies[e.detail.value])}
+                                className='time-picker'
+                            >
+                                <View className='picker-value'>
+                                    <Text>{poopConsistencyLabels[poopConsistencies.indexOf(poopConsistency)] || poopConsistency}</Text>
+                                </View>
+                            </Picker>
+                        </View>
+                    </>
+                )}
 
                 {recordType === 'sleep' && (
                     <View className='form-group'>

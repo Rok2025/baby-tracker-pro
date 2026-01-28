@@ -200,6 +200,36 @@ export default function Index() {
     return `${mins}分`
   }
 
+  const formatFoodDetails = (activity: Activity) => {
+    const amount = activity.food_amount || ''
+    let foods = ''
+    try {
+      const parsed = JSON.parse(activity.food_type || '[]')
+      if (Array.isArray(parsed)) {
+        foods = parsed.join('、')
+      } else {
+        foods = activity.food_type || ''
+      }
+    } catch (e) {
+      foods = activity.food_type || ''
+    }
+    return `${foods} ${amount}`.trim()
+  }
+
+  const formatPoopDetails = (activity: Activity) => {
+    const colorMap: Record<string, string> = {
+      'Yellow': '黄', 'Green': '绿', 'Brown': '褐', 'Black': '黑', 'Red': '红', 'White/Clay': '灰白'
+    }
+    const consistencyMap: Record<string, string> = {
+      'Watery': '水样', 'Loose/Mushy': '糊状', 'Soft': '软便', 'Normal': '正常', 'Hard': '硬便', 'Pellets': '羊屎蛋'
+    }
+
+    const color = colorMap[activity.poop_color || ''] || activity.poop_color || ''
+    const consistency = consistencyMap[activity.poop_consistency || ''] || activity.poop_consistency || ''
+
+    return `${color} ${consistency ? `(${consistency})` : ''}`.trim()
+  }
+
   // 仅在 AuthContext 还在初始化时显示加载中
   if (authLoading) {
     return (
@@ -294,7 +324,12 @@ export default function Index() {
                         >
                           <View className={`activity-item ${activity.type}`}>
                             <View className='icon-col'>
-                              <Text className='type-icon'>{activity.type === 'feeding' ? '🍼' : '😴'}</Text>
+                              <Text className='type-icon'>
+                                {activity.type === 'feeding' ? '🍼' :
+                                  activity.type === 'sleep' ? '😴' :
+                                    activity.type === 'solid_food' ? '🥣' :
+                                      activity.type === 'poop' ? '💩' : '📝'}
+                              </Text>
                             </View>
                             <View className='content-col'>
                               <View className='activity-main'>
@@ -304,12 +339,18 @@ export default function Index() {
                                     : formatTime(activity.start_time)}
                                 </Text>
                                 <Text className='activity-value'>
-                                  {activity.type === 'feeding'
-                                    ? `${activity.volume || 0} ml`
-                                    : activity.end_time ? `(${formatDurationSnippet(activity.start_time, activity.end_time)})` : '进行中'}
+                                  {activity.type === 'feeding' ? `${activity.volume || 0} ml` :
+                                    activity.type === 'sleep' ? (activity.end_time ? `(${formatDurationSnippet(activity.start_time, activity.end_time)})` : '进行中') :
+                                      activity.type === 'solid_food' ? formatFoodDetails(activity) :
+                                        activity.type === 'poop' ? formatPoopDetails(activity) : ''}
                                 </Text>
                               </View>
-                              <Text className='activity-type'>{activity.type === 'feeding' ? '喂奶' : '睡眠'}</Text>
+                              <Text className='activity-type'>
+                                {activity.type === 'feeding' ? '喂奶' :
+                                  activity.type === 'sleep' ? '睡眠' :
+                                    activity.type === 'solid_food' ? '辅食' :
+                                      activity.type === 'poop' ? '臭臭' : '其他'}
+                              </Text>
                               {activity.note && <Text className='activity-note'>{activity.note}</Text>}
                             </View>
                           </View>

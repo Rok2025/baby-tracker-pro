@@ -186,11 +186,15 @@ export type Activity = {
     id: string
     created_at: string
     user_id: string
-    type: 'sleep' | 'feeding' | 'other'
+    type: 'sleep' | 'feeding' | 'solid_food' | 'poop' | 'other'
     start_time: string
     end_time?: string | null
     volume?: number | null
     note?: string | null
+    food_amount?: string | null
+    food_type?: string | null
+    poop_color?: string | null
+    poop_consistency?: string | null
 }
 
 // Auth 模块

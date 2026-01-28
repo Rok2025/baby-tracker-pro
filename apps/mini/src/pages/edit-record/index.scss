@@ -164,6 +164,16 @@
         box-shadow: 0 15rpx 35rpx rgba(77, 171, 247, 0.3);
     }
 
+    &.solid_food {
+        background: linear-gradient(135deg, #ff922b 0%, #ffd43b 100%);
+        box-shadow: 0 15rpx 35rpx rgba(255, 146, 43, 0.3);
+    }
+
+    &.poop {
+        background: linear-gradient(135deg, #fcc419 0%, #fab005 100%);
+        box-shadow: 0 15rpx 35rpx rgba(252, 196, 25, 0.3);
+    }
+
     &::after {
         border: none;
     }
@@ -204,5 +214,58 @@
 
     100% {
         transform: rotate(360deg);
+    }
+}
+
+.food-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16rpx;
+}
+
+.food-tag {
+    background: #f1f3f5;
+    padding: 12rpx 24rpx;
+    border-radius: 30rpx;
+    font-size: 28rpx;
+    color: #495057;
+    border: 2rpx solid transparent;
+    transition: all 0.2s;
+
+    &.active {
+        background: rgba(255, 146, 43, 0.1);
+        color: #ff922b;
+        border-color: rgba(255, 146, 43, 0.3);
+        font-weight: bold;
+    }
+}
+
+.add-food-row {
+    display: flex;
+    gap: 16rpx;
+    align-items: center;
+}
+
+.small-input {
+    flex: 1;
+    font-size: 32rpx;
+    padding: 24rpx 32rpx;
+}
+
+.add-btn {
+    width: 80rpx;
+    height: 80rpx;
+    background: #ff922b;
+    border-radius: 20rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 48rpx;
+    font-weight: 300;
+    box-shadow: 0 4rpx 12rpx rgba(255, 146, 43, 0.3);
+
+    &:active {
+        transform: scale(0.95);
     }
 }
