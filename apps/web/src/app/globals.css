@@ -142,7 +142,7 @@
   --popover: oklch(0.99 0.008 30);
   --popover-foreground: oklch(0.3 0 0);
 
-  --primary: oklch(0.78 0.08 20);
+  --primary: oklch(0.45 0.12 20);
   --primary-foreground: oklch(0.99 0 0);
 
   --secondary: oklch(0.9 0.04 30);
@@ -167,7 +167,7 @@
 
   --sidebar: oklch(0.98 0.01 70);
   --sidebar-foreground: oklch(0.3 0 0);
-  --sidebar-primary: oklch(0.78 0.08 20);
+  --sidebar-primary: oklch(0.45 0.12 20);
   --sidebar-primary-foreground: oklch(0.99 0 0);
   --sidebar-accent: oklch(0.92 0.04 30);
   --sidebar-accent-foreground: oklch(0.3 0 0);
@@ -175,6 +175,29 @@
   --sidebar-ring: oklch(0.78 0.08 20);
 
   --font-sans: var(--font-nunito);
+}
+
+.yoyo body {
+  font-family: var(--font-sans);
+}
+
+.yoyo body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at 20% 80%,
+      oklch(0.9 0.08 20 / 0.15) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 80% 20%,
+      oklch(0.9 0.06 220 / 0.1) 0%,
+      transparent 50%
+    );
 }
 
 @layer base {

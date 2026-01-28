@@ -24,11 +24,16 @@ export type Activity = {
     id: string
     created_at: string
     user_id: string
-    type: 'sleep' | 'feeding' | 'other'
+    type: 'sleep' | 'feeding' | 'other' | 'solid_food' | 'poop'
     start_time: string
     end_time?: string | null
     volume?: number | null // ml
     note?: string | null
+    // New fields
+    poop_color?: string | null
+    poop_consistency?: string | null
+    food_amount?: string | null
+    food_type?: string | null // JSON string for solid food types
 }
 
 export type UserConfig = {
