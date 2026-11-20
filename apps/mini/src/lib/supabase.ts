@@ -67,6 +67,9 @@ const _refreshSession = async () => {
                     resolve({ data: res.data, error: null })
                 } else {
                     console.error('[Supabase] Refresh session failed:', res.data)
+                    // Refresh token invalid/expired — clear session to stop retry loop
+                    currentSession = null
+                    try { wx.removeStorageSync('supabase_session') } catch (e) { /* ignore */ }
                     resolve({ data: null, error: res.data || 'Refresh failed' })
                 }
             },
@@ -81,7 +84,7 @@ const _refreshSession = async () => {
 /**
  * 发起 Supabase REST API 请求
  */
-const request = <T = any>(
+const request = async <T = any>(
     path: string,
     options: {
         method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
@@ -89,6 +92,12 @@ const request = <T = any>(
         headers?: Record<string, string>
     } = {}
 ): Promise<{ data: T | null; error: any }> => {
+    // 如果 session 已过期，先尝试刷新再发请求
+    if (currentSession?.expires_at && currentSession.expires_at < Math.floor(Date.now() / 1000) + 30) {
+        console.log('[Supabase] Session expired, proactively refreshing...')
+        await _refreshSession()
+    }
+
     return new Promise((resolve) => {
         // Tunnel PATCH and DELETE via POST to avoid platform limitations
         let method = options.method || 'GET'
@@ -148,6 +157,9 @@ const request = <T = any>(
                         return
                     } else {
                         console.error('[Supabase] Token refresh failed or no session, returning 401')
+                        // Session is dead — clear it so AuthContext picks up the change
+                        currentSession = null
+                        try { wx.removeStorageSync('supabase_session') } catch (e) { /* ignore */ }
                     }
                 }
 
